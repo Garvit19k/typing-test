@@ -14,6 +14,7 @@ const leaderboardContainer = document.getElementById('leaderboard-container');
 const textDisplay = document.getElementById('text-display');
 const textInput = document.getElementById('text-input');
 const startBtn = document.getElementById('start-btn');
+const pauseBtn = document.getElementById('pause-btn');
 const wpmDisplay = document.getElementById('wpm');
 const accuracyDisplay = document.getElementById('accuracy');
 const timeDisplay = document.getElementById('time');
@@ -25,7 +26,10 @@ let currentUser = null;
 let timer = null;
 let timeLeft = 60;
 let isTestActive = false;
+let isPaused = false;
 let startTime = null;
+let pauseStartTime = null;
+let totalPausedTime = 0;
 let currentText = '';
 let correctCharacters = 0;
 let totalCharacters = 0;
@@ -102,10 +106,12 @@ function startTest() {
     if (isTestActive) return;
     
     isTestActive = true;
+    isPaused = false;
     startTime = Date.now();
     timeLeft = 60;
     correctCharacters = 0;
     totalCharacters = 0;
+    totalPausedTime = 0;
     
     // Select random text
     currentText = sampleTexts[Math.floor(Math.random() * sampleTexts.length)];
@@ -116,9 +122,31 @@ function startTest() {
     
     startBtn.textContent = 'Test in Progress...';
     startBtn.disabled = true;
+    pauseBtn.disabled = false;
     
     // Start timer
     timer = setInterval(updateTimer, 1000);
+}
+
+function togglePause() {
+    if (!isTestActive) return;
+    
+    isPaused = !isPaused;
+    pauseBtn.textContent = isPaused ? 'Resume' : 'Pause';
+    pauseBtn.classList.toggle('paused');
+    textInput.disabled = isPaused;
+    
+    if (isPaused) {
+        clearInterval(timer);
+        pauseStartTime = Date.now();
+    } else {
+        if (pauseStartTime) {
+            totalPausedTime += Date.now() - pauseStartTime;
+            pauseStartTime = null;
+        }
+        timer = setInterval(updateTimer, 1000);
+        textInput.focus();
+    }
 }
 
 function updateTimer() {
@@ -136,9 +164,12 @@ function endTest() {
     textInput.disabled = true;
     startBtn.textContent = 'Start Test';
     startBtn.disabled = false;
+    pauseBtn.disabled = true;
+    pauseBtn.textContent = 'Pause';
+    pauseBtn.classList.remove('paused');
     
     // Calculate final WPM and accuracy
-    const timeElapsed = (Date.now() - startTime) / 1000 / 60; // in minutes
+    const timeElapsed = ((Date.now() - startTime - totalPausedTime) / 1000) / 60; // in minutes
     const wpm = Math.round((correctCharacters / 5) / timeElapsed);
     const accuracy = Math.round((correctCharacters / totalCharacters) * 100);
     
@@ -159,7 +190,7 @@ function updateScore(wpm) {
 
 // Input handling
 textInput.addEventListener('input', () => {
-    if (!isTestActive) return;
+    if (!isTestActive || isPaused) return;
     
     const inputText = textInput.value;
     totalCharacters = inputText.length;
@@ -173,7 +204,7 @@ textInput.addEventListener('input', () => {
     }
     
     // Calculate and update WPM and accuracy
-    const timeElapsed = (Date.now() - startTime) / 1000 / 60; // in minutes
+    const timeElapsed = ((Date.now() - startTime - totalPausedTime) / 1000) / 60; // in minutes
     const wpm = Math.round((correctCharacters / 5) / timeElapsed);
     const accuracy = Math.round((correctCharacters / totalCharacters) * 100);
     
@@ -210,10 +241,12 @@ async function loadLeaderboard() {
 
 // Event Listeners
 startBtn.addEventListener('click', startTest);
+pauseBtn.disabled = true;
 
 // Initialize
 function resetTest() {
     isTestActive = false;
+    isPaused = false;
     clearInterval(timer);
     timeLeft = 60;
     timeDisplay.textContent = '60s';
@@ -224,4 +257,7 @@ function resetTest() {
     textDisplay.textContent = '';
     startBtn.textContent = 'Start Test';
     startBtn.disabled = false;
+    pauseBtn.disabled = true;
+    pauseBtn.textContent = 'Pause';
+    pauseBtn.classList.remove('paused');
 } 

@@ -34,7 +34,10 @@
         <div id="typing-container" class="typing-container hidden">
             <div class="header">
                 <h2>Welcome, <span id="username-display"></span></h2>
-                <button onclick="logout()" class="logout-btn">Logout</button>
+                <div class="control-buttons">
+                    <button id="pause-btn" class="control-btn pause-btn" onclick="togglePause()">Pause</button>
+                    <button onclick="logout()" class="control-btn logout-btn">Logout</button>
+                </div>
             </div>
             
             <div class="stats">
@@ -58,17 +61,22 @@
             </div>
 
             <button id="start-btn" class="start-btn">Start Test</button>
-        </div>
 
-        <div id="leaderboard-container" class="leaderboard-container hidden">
-            <h2>Leaderboard</h2>
-            <div class="leaderboard">
-                <div class="leaderboard-header">
-                    <span>Rank</span>
-                    <span>Username</span>
-                    <span>WPM</span>
+            <div id="leaderboard-container" class="leaderboard-container">
+                <h2>Leaderboard</h2>
+                <div class="leaderboard">
+                    <div class="leaderboard-header">
+                        <span>Rank</span>
+                        <span>Username</span>
+                        <span>WPM</span>
+                    </div>
+                    <div id="leaderboard-list"></div>
                 </div>
-                <div id="leaderboard-list"></div>
+            </div>
+
+            <div class="developer-credits">
+                <h3>Developed By</h3>
+                <p>Garvit & Karan</p>
             </div>
         </div>
     </div>
