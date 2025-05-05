@@ -175,24 +175,29 @@ timeButtons.forEach(button => {
 // Mode selection handling
 function selectMode(mode) {
     document.getElementById('mode-selection').classList.add('hidden');
+    document.getElementById('typing-container').classList.add('hidden');
+    document.getElementById('dog-rescue-container').classList.add('hidden');
     
     if (mode === 'dog-rescue') {
         document.getElementById('dog-rescue-container').classList.remove('hidden');
         setupDogGame();
-    } else {
+    } else if (mode === 'practice') {
         document.getElementById('typing-container').classList.remove('hidden');
-        if (mode === 'game') {
-            enableGameMode();
-        } else {
-            enablePracticeMode();
-        }
+        enablePracticeMode();
+    } else if (mode === 'game') {
+        document.getElementById('typing-container').classList.remove('hidden');
+        enableGameMode();
     }
 }
 
 function backToModes() {
     document.getElementById('typing-container').classList.add('hidden');
+    document.getElementById('dog-rescue-container').classList.add('hidden');
     document.getElementById('mode-selection').classList.remove('hidden');
     resetTest();
+    if (dogGameActive) {
+        endDogGame();
+    }
 }
 
 function enableGameMode() {
@@ -742,27 +747,53 @@ function setupDogGame() {
     const gameArea = document.getElementById('game-area');
     gameArea.innerHTML = '';
     dogsRescued = 0;
+    missedDogs = 0;
     rescueTimeLeft = 60;
-    updateDogGameStats();
+    dogGameActive = false;
+    currentDog = null;
     
-    document.getElementById('rescue-start-btn').addEventListener('click', startDogGame);
-    document.getElementById('rescue-input').addEventListener('input', handleDogGameInput);
+    // Clear any existing event listeners
+    const startBtn = document.getElementById('rescue-start-btn');
+    const input = document.getElementById('rescue-input');
+    const newStartBtn = startBtn.cloneNode(true);
+    const newInput = input.cloneNode(true);
+    startBtn.parentNode.replaceChild(newStartBtn, startBtn);
+    input.parentNode.replaceChild(newInput, input);
+    
+    // Add event listeners
+    newStartBtn.addEventListener('click', startDogGame);
+    newInput.addEventListener('input', handleDogGameInput);
+    
+    // Reset UI
+    document.getElementById('dogs-rescued').textContent = '0';
+    document.getElementById('rescue-time').textContent = '60s';
+    document.querySelector('.rescue-progress .fill').style.width = '0%';
+    
+    // Enable/disable appropriate elements
+    newInput.disabled = true;
+    newStartBtn.disabled = false;
 }
 
 function startDogGame() {
     if (dogGameActive) return;
     
     dogGameActive = true;
-    document.getElementById('rescue-input').value = '';
-    document.getElementById('rescue-input').disabled = false;
-    document.getElementById('rescue-input').focus();
+    const input = document.getElementById('rescue-input');
+    input.value = '';
+    input.disabled = false;
+    input.focus();
+    
     document.getElementById('rescue-start-btn').disabled = true;
     
     spawnNewDog();
     
+    if (rescueTimer) {
+        clearInterval(rescueTimer);
+    }
+    
     rescueTimer = setInterval(() => {
         rescueTimeLeft--;
-        updateDogGameStats();
+        document.getElementById('rescue-time').textContent = `${rescueTimeLeft}s`;
         
         if (rescueTimeLeft <= 0) {
             endDogGame();
@@ -783,6 +814,12 @@ function spawnNewDog() {
     dogElement.className = 'dog-character';
     dogElement.style.left = Math.random() * 80 + 10 + '%';
     dogElement.style.bottom = '20px';
+    
+    // Add dog emoji
+    const dogEmoji = document.createElement('div');
+    dogEmoji.className = 'dog-emoji';
+    dogEmoji.textContent = '🐕';
+    dogElement.appendChild(dogEmoji);
     
     const wordBubble = document.createElement('div');
     wordBubble.className = 'word-bubble';

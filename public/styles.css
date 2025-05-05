@@ -100,8 +100,6 @@ body {
     padding: 0.8rem 1.5rem;
     border: none;
     border-radius: 10px;
-    background: var(--gradient-1);
-    color: white;
     cursor: pointer;
     transition: all 0.3s ease;
     font-size: 1rem;
@@ -114,13 +112,41 @@ body {
     min-width: 120px;
 }
 
-.gender-option:hover {
+/* Male theme */
+.gender-option[data-gender="male"] {
+    background: linear-gradient(135deg, #2c3e50, #3498db);
+    color: white;
+}
+
+.gender-option[data-gender="male"]:hover {
+    background: linear-gradient(135deg, #34495e, #2980b9);
     transform: translateY(-2px);
     box-shadow: var(--shadow-2);
     opacity: 0.9;
 }
 
-.gender-option.active {
+.gender-option[data-gender="male"].active {
+    background: linear-gradient(135deg, #2c3e50, #3498db);
+    opacity: 1;
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-2);
+}
+
+/* Female theme */
+.gender-option[data-gender="female"] {
+    background: linear-gradient(135deg, #ff69b4, #ffb6c1);
+    color: white;
+}
+
+.gender-option[data-gender="female"]:hover {
+    background: linear-gradient(135deg, #ff1493, #ff69b4);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-2);
+    opacity: 0.9;
+}
+
+.gender-option[data-gender="female"].active {
+    background: linear-gradient(135deg, #ff69b4, #ffb6c1);
     opacity: 1;
     transform: translateY(-1px);
     box-shadow: var(--shadow-2);
@@ -146,6 +172,21 @@ body {
     width: 80px;
     height: 80px;
     transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.dog-emoji {
+    font-size: 2.5rem;
+    animation: bounce 1s ease-in-out infinite;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
 }
 
 .word-bubble {
