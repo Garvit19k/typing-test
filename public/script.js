@@ -7,6 +7,9 @@ const sampleTexts = [
     "Cloud computing is the on-demand availability of computer system resources, especially data storage and computing power, without direct active management by the user."
 ];
 
+// API Base URL
+const API_URL = window.location.origin;
+
 // DOM Elements
 const authContainer = document.getElementById('auth-container');
 const typingContainer = document.getElementById('typing-container');
@@ -50,7 +53,7 @@ async function register() {
     const password = document.getElementById('register-password').value;
 
     try {
-        const response = await fetch('/api/register', {
+        const response = await fetch(`${API_URL}/api/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, password })
@@ -73,7 +76,7 @@ async function login() {
     const password = document.getElementById('login-password').value;
 
     try {
-        const response = await fetch('/api/login', {
+        const response = await fetch(`${API_URL}/api/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, password })
@@ -181,7 +184,7 @@ function endTest() {
 }
 
 function updateScore(wpm) {
-    fetch('/api/update-score', {
+    fetch(`${API_URL}/api/update-score`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: currentUser, score: wpm })
@@ -220,7 +223,7 @@ textInput.addEventListener('input', () => {
 // Leaderboard Functions
 async function loadLeaderboard() {
     try {
-        const response = await fetch('/api/leaderboard');
+        const response = await fetch(`${API_URL}/api/leaderboard`);
         const data = await response.json();
         
         leaderboardList.innerHTML = '';
