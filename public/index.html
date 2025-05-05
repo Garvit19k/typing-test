@@ -3,151 +3,124 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Typing Test Pro</title>
-    <link rel="stylesheet" href="styles.css">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <title>Cute Typing Test</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/themes.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
 </head>
-<body>
+<body class="theme-kawaii">
     <div class="container">
-        <!-- Auth Container -->
-        <div id="auth-container" class="auth-container">
-            <h1>Typing Test Pro</h1>
+        <div class="theme-selector">
+            <h2>Choose Your Style ✨</h2>
+            <div class="theme-options">
+                <button onclick="setTheme('kawaii')" class="theme-btn kawaii-btn">
+                    Kawaii Style 🌸
+                </button>
+                <button onclick="setTheme('cool')" class="theme-btn cool-btn">
+                    Cool Style 🌟
+                </button>
+                <button onclick="setTheme('pastel')" class="theme-btn pastel-btn">
+                    Pastel Style 🌈
+                </button>
+            </div>
+        </div>
+
+        <div id="auth-container">
             <div class="auth-box">
+                <h2>Welcome to Typing Test! 💫</h2>
                 <div class="auth-tabs">
                     <button class="tab-btn active" data-tab="login">Login</button>
                     <button class="tab-btn" data-tab="register">Register</button>
                 </div>
-                <div class="tab-content">
-                    <div id="login" class="tab-pane active">
-                        <form id="login-form" onsubmit="event.preventDefault(); login();">
-                            <input type="text" id="login-username" placeholder="Username" required>
-                            <input type="password" id="login-password" placeholder="Password" required>
-                            <button type="submit">Login</button>
-                        </form>
-                    </div>
-                    <div id="register" class="tab-pane">
-                        <form id="register-form" onsubmit="event.preventDefault(); register();">
-                            <input type="text" id="register-username" placeholder="Choose Username" required>
-                            <input type="password" id="register-password" placeholder="Choose Password" required>
-                            <button type="submit">Register</button>
-                        </form>
-                    </div>
+                
+                <div id="login" class="tab-pane active">
+                    <form id="login-form">
+                        <input type="text" id="login-username" placeholder="Username" required>
+                        <input type="password" id="login-password" placeholder="Password" required>
+                        <button type="submit">Login ✨</button>
+                    </form>
+                </div>
+                
+                <div id="register" class="tab-pane">
+                    <form id="register-form">
+                        <input type="text" id="register-username" placeholder="Choose Username" required>
+                        <input type="password" id="register-password" placeholder="Choose Password" required>
+                        <button type="submit">Register 🌟</button>
+                    </form>
                 </div>
             </div>
         </div>
 
-        <!-- Mode Selection -->
-        <div id="mode-selection" class="mode-selection hidden">
-            <h2>Choose Your Mode</h2>
+        <div id="mode-selection" class="hidden">
+            <h2>Choose Your Mode 🎮</h2>
             <div class="mode-buttons">
                 <button class="mode-btn practice" onclick="selectMode('practice')">
-                    <i class="fas fa-keyboard"></i>
-                    Typing Test
-                    <span>Test your speed</span>
+                    Practice Mode 📝
                 </button>
                 <button class="mode-btn game" onclick="selectMode('game')">
-                    <i class="fas fa-gamepad"></i>
-                    Challenge Mode
-                    <span>Race against time</span>
+                    Game Mode 🎯
+                </button>
+                <button class="mode-btn dog-rescue" onclick="selectMode('dog-rescue')">
+                    Dog Rescue Mode 🐕
                 </button>
             </div>
-            <button class="about-btn" onclick="showAbout()">About</button>
         </div>
 
-        <!-- About Modal -->
-        <div id="about-modal" class="modal hidden">
-            <div class="modal-content">
-                <span class="close-btn" onclick="closeAbout()">&times;</span>
-                <h2>About Typing Test Pro</h2>
-                <div class="about-section">
-                    <h3>Features</h3>
-                    <ul>
-                        <li>Real-time WPM and accuracy tracking</li>
-                        <li>Multiple time duration options</li>
-                        <li>Challenge mode with progressive difficulty</li>
-                        <li>Global leaderboard</li>
-                        <li>Beautiful, responsive design</li>
-                    </ul>
+        <div id="typing-container" class="hidden">
+            <div class="stats-container">
+                <div class="stat-box">
+                    <span class="stat-label">WPM</span>
+                    <span id="wpm" class="stat-value">0</span>
                 </div>
-                <div class="about-section">
-                    <h3>About the Developers</h3>
-                    <p>This web project has been developed by Garvit and Karan, students currently pursuing their Bachelor of Computer Applications (BCA) in the 6th semester at Soban Singh Jeena University (SSJU), Almora.</p>
-                    <p>With a passion for web technologies and software development, they collaborated on this project as part of their academic journey, applying theoretical knowledge to real-world problem-solving.</p>
+                <div class="stat-box">
+                    <span class="stat-label">Accuracy</span>
+                    <span id="accuracy" class="stat-value">0%</span>
                 </div>
-                <div class="about-section">
-                    <h3>Technologies Used</h3>
-                    <ul>
-                        <li>Frontend: HTML5, CSS3, Vanilla JavaScript</li>
-                        <li>Backend: Node.js with Express</li>
-                        <li>Deployment: Vercel</li>
-                    </ul>
+                <div class="stat-box">
+                    <span class="stat-label">Time</span>
+                    <span id="time" class="stat-value">60s</span>
                 </div>
             </div>
-        </div>
 
-        <!-- Typing Container -->
-        <div id="typing-container" class="typing-container hidden">
-            <button class="back-btn" onclick="backToModes()">← Back</button>
-            <div class="header">
-                <h2>Welcome, <span id="username-display"></span></h2>
-                <div class="control-buttons">
-                    <button id="pause-btn" class="control-btn pause-btn" onclick="togglePause()">Pause</button>
-                    <button onclick="logout()" class="control-btn logout-btn">Logout</button>
-                </div>
+            <div class="text-container">
+                <div id="text-display"></div>
+                <input type="text" id="text-input" disabled>
             </div>
-            
+
+            <div class="control-buttons">
+                <button id="start-btn">Start Test ✨</button>
+                <button id="pause-btn" disabled>Pause</button>
+                <button onclick="backToModes()">Change Mode 🔄</button>
+            </div>
+
             <div class="time-options">
-                <h3>Select Time Duration</h3>
-                <div class="time-buttons">
-                    <button class="time-btn" data-time="30">30 Seconds</button>
-                    <button class="time-btn" data-time="60">1 Minute</button>
-                    <button class="time-btn active" data-time="120">2 Minutes</button>
-                    <button class="time-btn" data-time="180">3 Minutes</button>
-                    <button class="time-btn" data-time="300">5 Minutes</button>
-                </div>
+                <button class="time-btn active" data-time="60">1 Min</button>
+                <button class="time-btn" data-time="120">2 Min</button>
+                <button class="time-btn" data-time="180">3 Min</button>
+                <button class="time-btn" data-time="300">5 Min</button>
             </div>
+        </div>
 
-            <div class="stats">
-                <div class="stat-box">
-                    <span>WPM</span>
-                    <span id="wpm">0</span>
-                </div>
-                <div class="stat-box">
-                    <span>Accuracy</span>
-                    <span id="accuracy">0%</span>
-                </div>
-                <div class="stat-box">
-                    <span>Time</span>
-                    <span id="time">2m</span>
-                </div>
-            </div>
+        <div id="leaderboard-container">
+            <h2>Leaderboard 🏆</h2>
+            <div id="leaderboard-list"></div>
+        </div>
 
-            <div class="typing-area">
-                <div id="text-display" class="text-display"></div>
-                <textarea id="text-input" class="text-input" placeholder="Start typing..." disabled></textarea>
-            </div>
+        <!-- Theme-specific decorations -->
+        <div class="kawaii-decoration top-left">🌸</div>
+        <div class="kawaii-decoration top-right">✨</div>
+        <div class="kawaii-decoration bottom-left">🌟</div>
+        <div class="kawaii-decoration bottom-right">🎀</div>
+    </div>
 
-            <button id="start-btn" class="start-btn">Start Test</button>
-
-            <div id="leaderboard-container" class="leaderboard-container">
-                <h2>Leaderboard</h2>
-                <div class="leaderboard">
-                    <div class="leaderboard-header">
-                        <span>Rank</span>
-                        <span>Username</span>
-                        <span>WPM</span>
-                    </div>
-                    <div id="leaderboard-list"></div>
-                </div>
-            </div>
-
-            <div class="developer-credits">
-                <h3>Developed By</h3>
-                <p>Garvit & Karan</p>
-            </div>
+    <div id="about-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2>About Typing Test ✨</h2>
+            <p>Practice your typing skills with our cute and fun typing test! Choose your favorite theme and compete with others!</p>
+            <button onclick="closeAbout()">Close 💫</button>
         </div>
     </div>
+
     <script src="script.js"></script>
 </body>
 </html> 

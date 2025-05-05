@@ -7,12 +7,68 @@ const sampleTexts = [
     "Cloud computing is the on-demand availability of computer system resources."
 ];
 
-// Update API Base URL to use relative path for Vercel
-const API_URL = '/api';
+// Update API Base URL to use local server
+const API_URL = 'http://localhost:3000';  // Point to local Express server
 
 // Add this at the top of your script.js, after the API_URL declaration
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 2000;
+
+// Add theme-related code at the top after API_URL declaration
+const themes = {
+    kawaii: {
+        emojis: ['🌸', '✨', '🎀', '🌟', '💖', '🦄', '🌈', '🍡'],
+        completionMessages: [
+            "Kawaii! ✨",
+            "So cute! 🌸",
+            "Perfect! 💖",
+            "Amazing! 🦄"
+        ]
+    },
+    cool: {
+        emojis: ['⭐', '✨', '💫', '🌟', '⚡', '🔥', '💪', '🎯'],
+        completionMessages: [
+            "Awesome! 🔥",
+            "Fantastic! ⚡",
+            "Great job! 💫",
+            "Keep it up! 💪"
+        ]
+    },
+    pastel: {
+        emojis: ['🍭', '🌸', '🌺', '🌷', '🎨', '🌅', '🌊', '🍡'],
+        completionMessages: [
+            "Lovely! 🌸",
+            "Beautiful! 🌺",
+            "Wonderful! 🎨",
+            "Delightful! 🌷"
+        ]
+    }
+};
+
+let currentTheme = 'kawaii';
+
+function setTheme(theme) {
+    // Remove all theme classes
+    document.body.classList.remove('theme-kawaii', 'theme-cool', 'theme-pastel');
+    // Add new theme class
+    document.body.classList.add(`theme-${theme}`);
+    currentTheme = theme;
+    
+    // Update decorations
+    updateDecorations();
+    
+    // Save theme preference
+    localStorage.setItem('preferred-theme', theme);
+}
+
+function updateDecorations() {
+    const decorations = document.querySelectorAll('.kawaii-decoration');
+    const themeEmojis = themes[currentTheme].emojis;
+    
+    decorations.forEach((decoration, index) => {
+        decoration.textContent = themeEmojis[index % themeEmojis.length];
+    });
+}
 
 // Helper function for API calls with retry logic
 async function fetchWithRetry(url, options, retries = MAX_RETRIES) {
@@ -155,7 +211,7 @@ async function register() {
         registerBtn.textContent = 'Creating Account...';
         registerBtn.disabled = true;
 
-        const response = await fetchWithRetry(`${API_URL}/api/register`, {
+        const response = await fetch('/api/register', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, password })
@@ -169,7 +225,7 @@ async function register() {
             alert(data.error || 'Registration failed. Please try again.');
         }
     } catch (error) {
-        alert(error.message || 'Error during registration. Please try again.');
+        alert('Error during registration. Please try again.');
     } finally {
         const registerBtn = document.querySelector('#register-form button');
         registerBtn.textContent = 'Register';
@@ -186,16 +242,12 @@ async function login() {
         return;
     }
     
-    loginUser(username, password);
-}
-
-async function loginUser(username, password) {
     try {
         const loginBtn = document.querySelector('#login-form button');
         loginBtn.textContent = 'Logging in...';
         loginBtn.disabled = true;
 
-        const response = await fetch(`${API_URL}/login`, {
+        const response = await fetch('/api/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, password })
@@ -380,34 +432,29 @@ function loadLocalLeaderboard() {
 
 // Modify updateScore function
 async function updateScore(wpm) {
-    if (isOfflineMode) {
-        saveLocalScore(wpm);
-        return;
-    }
-
     try {
-        await fetch(`${API_URL}/api/update-score`, {
+        await fetch('/api/scores', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username: currentUser.username, score: wpm })
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${currentUser.token}`
+            },
+            body: JSON.stringify({ 
+                username: currentUser.username, 
+                wpm,
+                accuracy: Math.round((correctCharacters / totalCharacters) * 100)
+            })
         });
         loadLeaderboard();
     } catch (error) {
         console.error('Error updating score:', error);
-        // Fallback to local storage if backend fails
-        saveLocalScore(wpm);
     }
 }
 
 // Modify loadLeaderboard function
 async function loadLeaderboard() {
-    if (isOfflineMode) {
-        loadLocalLeaderboard();
-        return;
-    }
-
     try {
-        const response = await fetch(`${API_URL}/api/leaderboard`);
+        const response = await fetch('/api/leaderboard');
         const data = await response.json();
         
         const leaderboardList = document.getElementById('leaderboard-list');
@@ -419,19 +466,47 @@ async function loadLeaderboard() {
             item.innerHTML = `
                 <span>${index + 1}</span>
                 <span>${user.username}</span>
-                <span>${user.highScore} WPM</span>
+                <span>${user.wpm} WPM</span>
             `;
             leaderboardList.appendChild(item);
         });
     } catch (error) {
         console.error('Error loading leaderboard:', error);
-        loadLocalLeaderboard();
     }
 }
 
 // Check backend availability on page load
 document.addEventListener('DOMContentLoaded', () => {
-    checkBackendAvailability();
+    // Check if user is already logged in
+    const token = localStorage.getItem('token');
+    if (token) {
+        // Verify token and auto-login
+        fetch('/api/verify', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.valid) {
+                currentUser = {
+                    username: data.username,
+                    token: token
+                };
+                authContainer.classList.add('hidden');
+                document.getElementById('mode-selection').classList.remove('hidden');
+                usernameDisplay.textContent = `Welcome, ${currentUser.username}!`;
+                loadLeaderboard();
+            }
+        })
+        .catch(() => {
+            localStorage.removeItem('token');
+        });
+    }
+    
+    // Load saved theme preference
+    const savedTheme = localStorage.getItem('preferred-theme');
+    if (savedTheme) {
+        setTheme(savedTheme);
+    }
 });
 
 // Handle input with error highlighting and word completion
@@ -505,19 +580,19 @@ textInput.addEventListener('input', () => {
     }
 });
 
-// Enhanced word completion
+// Modify the showCompletionEmoji function to use theme-specific emojis
 function showCompletionEmoji(span) {
     const emoji = document.createElement('div');
-    emoji.className = 'word-complete-emoji';
+    emoji.className = 'completion-emoji';
     
-    // Position emoji after the word
+    // Get random emoji from current theme
+    const themeEmojis = themes[currentTheme].emojis;
+    emoji.textContent = themeEmojis[Math.floor(Math.random() * themeEmojis.length)];
+    
+    // Position emoji
     const rect = span.getBoundingClientRect();
     emoji.style.left = `${rect.right + 10}px`;
     emoji.style.top = `${rect.top}px`;
-    
-    // Random emoji selection
-    const emojis = ['✨', '⭐', '🎯'];
-    emoji.textContent = emojis[Math.floor(Math.random() * emojis.length)];
     
     document.body.appendChild(emoji);
     
@@ -525,32 +600,18 @@ function showCompletionEmoji(span) {
     setTimeout(() => emoji.remove(), 1000);
 }
 
-// Victory celebration
+// Modify the showVictoryCelebration function to use theme-specific messages
 function showVictoryCelebration(stats) {
     const celebration = document.createElement('div');
     celebration.className = 'victory-celebration';
     
-    // Calculate performance level and message
-    let performanceMessage = '';
-    let performanceEmoji = '';
-    if (stats.wpm >= 80) {
-        performanceMessage = "Outstanding! You're a typing master!";
-        performanceEmoji = '🏆';
-    } else if (stats.wpm >= 60) {
-        performanceMessage = "Great job! You're getting really fast!";
-        performanceEmoji = '🌟';
-    } else if (stats.wpm >= 40) {
-        performanceMessage = "Good progress! Keep practicing to improve!";
-        performanceEmoji = '👍';
-    } else {
-        performanceMessage = "Nice start! Regular practice will help you improve.";
-        performanceEmoji = '💪';
-    }
+    // Get random completion message from current theme
+    const messages = themes[currentTheme].completionMessages;
+    const message = messages[Math.floor(Math.random() * messages.length)];
     
     celebration.innerHTML = `
         <div class="victory-content">
-            <h1 class="victory-title">Test Complete! ${performanceEmoji}</h1>
-            <p class="performance-message">${performanceMessage}</p>
+            <h1 class="victory-title">${message}</h1>
             <div class="victory-stats">
                 <div class="victory-stat">
                     <span>WPM</span>
@@ -566,21 +627,19 @@ function showVictoryCelebration(stats) {
                 </div>
             </div>
             <div class="victory-buttons">
-                <button class="mode-btn practice" onclick="tryAgain()">Try Again</button>
-                <button class="mode-btn game" onclick="backToModes()">Change Mode</button>
+                <button class="theme-btn" onclick="tryAgain()">Try Again ${themes[currentTheme].emojis[0]}</button>
+                <button class="theme-btn" onclick="backToModes()">Change Mode ${themes[currentTheme].emojis[1]}</button>
             </div>
-            <p class="typing-tip">Tip: ${getRandomTypingTip()}</p>
         </div>
     `;
     
     document.body.appendChild(celebration);
     
-    // Add confetti
+    // Add theme-specific confetti
     for (let i = 0; i < 50; i++) {
         createConfetti();
     }
     
-    // Show celebration with animation
     setTimeout(() => celebration.classList.add('show'), 10);
 }
 
@@ -775,11 +834,14 @@ function endDogGame() {
 
 async function updateRescueLeaderboard(score) {
     try {
-        const response = await fetch(`${API_URL}/api/update-score`, {
+        const response = await fetch('/api/scores', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${currentUser.token}`
+            },
             body: JSON.stringify({ 
-                username: currentUser, 
+                username: currentUser.username, 
                 score: score,
                 gameMode: 'dog-rescue'
             })
@@ -795,7 +857,7 @@ async function updateRescueLeaderboard(score) {
 
 async function loadRescueLeaderboard() {
     try {
-        const response = await fetch(`${API_URL}/api/leaderboard?mode=dog-rescue`);
+        const response = await fetch('/api/leaderboard?mode=dog-rescue');
         const data = await response.json();
         
         const leaderboardList = document.getElementById('rescue-leaderboard-list');
@@ -882,7 +944,7 @@ function closeAbout() {
 // Add these functions after API_URL declaration
 async function checkServerStatus() {
     try {
-        const response = await fetch(`${API_URL}/health`);
+        const response = await fetch('/health');
         const data = await response.json();
         return data.status === 'OK';
     } catch (error) {
