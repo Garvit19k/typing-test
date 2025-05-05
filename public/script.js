@@ -143,6 +143,17 @@ document.querySelectorAll('.tab-btn').forEach(button => {
     });
 });
 
+// Form submission handlers
+document.getElementById('login-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    await login();
+});
+
+document.getElementById('register-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    await register();
+});
+
 // Time option selection
 timeButtons.forEach(button => {
     button.addEventListener('click', () => {
