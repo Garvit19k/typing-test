@@ -7,13 +7,19 @@ const app = express();
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.static('public'));
+
+// Serve static files from the public directory
+app.use(express.static(path.join(__dirname, 'public')));
 
 // In-memory storage
 const users = new Map();
 const scores = [];
 
 // Routes
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
 app.post('/api/register', async (req, res) => {
     try {
         const { username, password } = req.body;
@@ -68,6 +74,11 @@ app.post('/api/update-score', async (req, res) => {
     } catch (error) {
         res.status(400).json({ error: error.message });
     }
+});
+
+// Handle all other routes by serving index.html
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 const PORT = process.env.PORT || 3001;
