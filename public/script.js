@@ -156,11 +156,10 @@ async function register() {
         registerBtn.textContent = 'Creating Account...';
         registerBtn.disabled = true;
 
-        // Try to wake up the server
-        try {
-            await fetch(`${API_URL}/health`);
-        } catch (error) {
-            console.log('Server might be cold starting...');
+        // Check server status first
+        const serverReady = await waitForServer();
+        if (!serverReady) {
+            throw new Error('Server is still starting up. Please try again in a moment.');
         }
 
         const response = await fetchWithRetry(`${API_URL}/api/register`, {
@@ -174,10 +173,10 @@ async function register() {
             alert('Registration successful! Please login.');
             document.querySelector('[data-tab="login"]').click();
         } else {
-            alert(data.error);
+            alert(data.error || 'Registration failed. Please try again.');
         }
     } catch (error) {
-        alert('Error during registration. The server might be starting up, please try again in a moment.');
+        alert(error.message || 'Error during registration. Please try again.');
     } finally {
         // Reset button state
         const registerBtn = document.querySelector('#register-form button');
@@ -196,11 +195,10 @@ async function login() {
         loginBtn.textContent = 'Logging in...';
         loginBtn.disabled = true;
 
-        // First, try to wake up the server
-        try {
-            await fetch(`${API_URL}/health`);
-        } catch (error) {
-            console.log('Server might be cold starting...');
+        // Check server status first
+        const serverReady = await waitForServer();
+        if (!serverReady) {
+            throw new Error('Server is still starting up. Please try again in a moment.');
         }
 
         const response = await fetchWithRetry(`${API_URL}/api/login`, {
@@ -211,16 +209,25 @@ async function login() {
 
         const data = await response.json();
         if (response.ok) {
-            currentUser = username;
-            usernameDisplay.textContent = username;
+            currentUser = {
+                username: data.username,
+                token: data.token,
+                highScore: data.highScore,
+                dogRescues: data.dogRescues
+            };
+            
+            // Update UI
             authContainer.classList.add('hidden');
             document.getElementById('mode-selection').classList.remove('hidden');
+            usernameDisplay.textContent = `Welcome, ${currentUser.username}!`;
+            
+            // Load leaderboard
             loadLeaderboard();
         } else {
-            alert(data.error);
+            alert(data.error || 'Login failed. Please try again.');
         }
     } catch (error) {
-        alert('Error during login. The server might be starting up, please try again in a moment.');
+        alert(error.message || 'Error during login. Please try again.');
     } finally {
         // Reset button state
         const loginBtn = document.querySelector('#login-form button');
@@ -810,4 +817,36 @@ function closeAbout() {
     const modal = document.getElementById('about-modal');
     modal.classList.remove('show');
     setTimeout(() => modal.classList.add('hidden'), 300);
+}
+
+// Add these functions after API_URL declaration
+async function checkServerStatus() {
+    try {
+        const response = await fetch(`${API_URL}/health`);
+        const data = await response.json();
+        return data.status === 'OK';
+    } catch (error) {
+        return false;
+    }
+}
+
+async function waitForServer(maxAttempts = 5) {
+    const loadingMessage = document.createElement('div');
+    loadingMessage.id = 'server-loading';
+    loadingMessage.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #f0f0f0; padding: 10px; border-radius: 5px; z-index: 1000;';
+    document.body.appendChild(loadingMessage);
+
+    for (let i = 0; i < maxAttempts; i++) {
+        loadingMessage.textContent = `Server is starting up... (Attempt ${i + 1}/${maxAttempts})`;
+        const isReady = await checkServerStatus();
+        if (isReady) {
+            loadingMessage.textContent = 'Server is ready!';
+            setTimeout(() => loadingMessage.remove(), 2000);
+            return true;
+        }
+        await new Promise(resolve => setTimeout(resolve, 3000));
+    }
+    
+    loadingMessage.textContent = 'Server seems to be taking longer than usual...';
+    return false;
 } 

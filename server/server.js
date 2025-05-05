@@ -13,23 +13,56 @@ app.use(express.json());
 
 // Health check route for keep-alive
 app.get('/health', (req, res) => {
-    res.status(200).json({ status: 'OK' });
+    // Check MongoDB connection
+    if (mongoose.connection.readyState === 1) {
+        res.status(200).json({ 
+            status: 'OK',
+            database: 'Connected',
+            message: 'Server is fully operational'
+        });
+    } else {
+        res.status(503).json({ 
+            status: 'Starting',
+            database: 'Connecting',
+            message: 'Server is starting up, please try again in a few seconds'
+        });
+    }
 });
 
-// Improved MongoDB Connection with retry logic
-const connectDB = async () => {
+// Add a startup status route
+app.get('/', (req, res) => {
+    res.status(200).json({
+        message: 'Typing Test API is running',
+        databaseStatus: mongoose.connection.readyState === 1 ? 'Connected' : 'Connecting',
+        serverTime: new Date().toISOString()
+    });
+});
+
+// Improved MongoDB Connection with retry logic and exponential backoff
+const connectDB = async (retryCount = 0) => {
+    const maxRetries = 5;
+    const backoffMs = Math.min(1000 * Math.pow(2, retryCount), 10000); // Max 10 second delay
+
     try {
         const conn = await mongoose.connect(process.env.MONGODB_URI, {
             useNewUrlParser: true,
             useUnifiedTopology: true,
-            serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 30s
+            serverSelectionTimeoutMS: 5000,
             retryWrites: true
         });
         console.log(`MongoDB Connected: ${conn.connection.host}`);
+        return true;
     } catch (error) {
-        console.error('MongoDB connection error:', error);
-        // Retry connection after 5 seconds
-        setTimeout(connectDB, 5000);
+        console.error(`MongoDB connection attempt ${retryCount + 1} failed:`, error.message);
+        
+        if (retryCount < maxRetries) {
+            console.log(`Retrying in ${backoffMs/1000} seconds...`);
+            await new Promise(resolve => setTimeout(resolve, backoffMs));
+            return connectDB(retryCount + 1);
+        } else {
+            console.error('Max retry attempts reached. Please check your database configuration.');
+            return false;
+        }
     }
 };
 
