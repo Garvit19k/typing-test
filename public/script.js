@@ -10,6 +10,28 @@ const sampleTexts = [
 // API Base URL
 const API_URL = window.location.origin;
 
+// Add this at the top of your script.js, after the API_URL declaration
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 2000;
+
+// Helper function for API calls with retry logic
+async function fetchWithRetry(url, options, retries = MAX_RETRIES) {
+    try {
+        const response = await fetch(url, options);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response;
+    } catch (error) {
+        if (retries > 0) {
+            console.log(`Retrying... ${retries} attempts left`);
+            await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
+            return fetchWithRetry(url, options, retries - 1);
+        }
+        throw error;
+    }
+}
+
 // DOM Elements
 const authContainer = document.getElementById('auth-container');
 const typingContainer = document.getElementById('typing-container');
@@ -129,7 +151,19 @@ async function register() {
     const password = document.getElementById('register-password').value;
 
     try {
-        const response = await fetch(`${API_URL}/api/register`, {
+        // Show loading state
+        const registerBtn = document.querySelector('#register-form button');
+        registerBtn.textContent = 'Creating Account...';
+        registerBtn.disabled = true;
+
+        // Try to wake up the server
+        try {
+            await fetch(`${API_URL}/health`);
+        } catch (error) {
+            console.log('Server might be cold starting...');
+        }
+
+        const response = await fetchWithRetry(`${API_URL}/api/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, password })
@@ -143,16 +177,33 @@ async function register() {
             alert(data.error);
         }
     } catch (error) {
-        alert('Error during registration');
+        alert('Error during registration. The server might be starting up, please try again in a moment.');
+    } finally {
+        // Reset button state
+        const registerBtn = document.querySelector('#register-form button');
+        registerBtn.textContent = 'Register';
+        registerBtn.disabled = false;
     }
 }
 
 async function login() {
     const username = document.getElementById('login-username').value;
     const password = document.getElementById('login-password').value;
-
+    
     try {
-        const response = await fetch(`${API_URL}/api/login`, {
+        // Show loading state
+        const loginBtn = document.querySelector('#login-form button');
+        loginBtn.textContent = 'Logging in...';
+        loginBtn.disabled = true;
+
+        // First, try to wake up the server
+        try {
+            await fetch(`${API_URL}/health`);
+        } catch (error) {
+            console.log('Server might be cold starting...');
+        }
+
+        const response = await fetchWithRetry(`${API_URL}/api/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, password })
@@ -169,7 +220,12 @@ async function login() {
             alert(data.error);
         }
     } catch (error) {
-        alert('Error during login');
+        alert('Error during login. The server might be starting up, please try again in a moment.');
+    } finally {
+        // Reset button state
+        const loginBtn = document.querySelector('#login-form button');
+        loginBtn.textContent = 'Login';
+        loginBtn.disabled = false;
     }
 }
 
