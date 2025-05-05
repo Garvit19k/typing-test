@@ -138,6 +138,7 @@ let dogsRescued = 0;
 let rescueTimer = null;
 let currentDog = null;
 let rescueTimeLeft = 60;
+let missedDogs = 0;
 
 // Tab switching
 document.querySelectorAll('.tab-btn').forEach(button => {
@@ -770,6 +771,11 @@ function startDogGame() {
 }
 
 function spawnNewDog() {
+    if (currentDog) {
+        missedDogs++;
+        currentDog.element.remove();
+    }
+    
     const gameArea = document.getElementById('game-area');
     const word = dogWords[Math.floor(Math.random() * dogWords.length)];
     
@@ -867,19 +873,29 @@ function endDogGame() {
     document.getElementById('rescue-input').disabled = true;
     document.getElementById('rescue-start-btn').disabled = false;
     
+    // Calculate accuracy (avoid division by zero)
+    const totalAttempts = dogsRescued + missedDogs;
+    const accuracy = totalAttempts > 0 ? Math.round((dogsRescued / totalAttempts) * 100) : 100;
+    
     // Show victory celebration
     showVictoryCelebration({
         wpm: dogsRescued,
-        accuracy: Math.round((dogsRescued / (dogsRescued + missedDogs)) * 100),
+        accuracy: accuracy,
         time: 60
     });
     
     // Update high score
-    const currentHighScore = parseInt(document.getElementById('rescue-high-score').textContent);
+    const currentHighScore = parseInt(document.getElementById('rescue-high-score').textContent) || 0;
     if (dogsRescued > currentHighScore) {
         document.getElementById('rescue-high-score').textContent = dogsRescued;
         updateRescueLeaderboard(dogsRescued);
     }
+    
+    // Reset game variables
+    dogsRescued = 0;
+    missedDogs = 0;
+    rescueTimeLeft = 60;
+    updateDogGameStats();
 }
 
 async function updateRescueLeaderboard(score) {

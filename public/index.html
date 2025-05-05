@@ -109,6 +109,40 @@
             </div>
         </div>
 
+        <div id="dog-rescue-container" class="hidden">
+            <div class="stats-container">
+                <div class="stat-box">
+                    <span class="stat-label">Dogs Rescued</span>
+                    <span id="dogs-rescued" class="stat-value">0</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">Time Left</span>
+                    <span id="rescue-time" class="stat-value">60s</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">High Score</span>
+                    <span id="rescue-high-score" class="stat-value">0</span>
+                </div>
+            </div>
+
+            <div id="game-area" class="dog-game-container">
+                <div class="rescue-progress">
+                    <div class="fill"></div>
+                </div>
+            </div>
+
+            <div class="control-buttons">
+                <input type="text" id="rescue-input" placeholder="Type to rescue dogs!" disabled>
+                <button id="rescue-start-btn">Start Rescue Mission 🐕</button>
+                <button onclick="backToModes()">Change Mode 🔄</button>
+            </div>
+
+            <div id="rescue-leaderboard">
+                <h3>Top Rescuers 🏆</h3>
+                <div id="rescue-leaderboard-list"></div>
+            </div>
+        </div>
+
         <div id="leaderboard-container">
             <h2>Leaderboard 🏆</h2>
             <div id="leaderboard-list"></div>
