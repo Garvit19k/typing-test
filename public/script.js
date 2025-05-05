@@ -40,7 +40,20 @@ let totalCharacters = 0;
 let selectedTime = 120; // Default to 2 minutes
 
 // Emojis for word completion
-const completionEmojis = ['🎯', '⭐', '✨', '🌟', '💫', '🎨', '🎪', '��', '🎪', '🎯'];
+const completionEmojis = ['🎯', '⭐', '✨', '🌟', '💫', '🎨', '🎪', '🎭'];
+
+// Dog Rescue Game Variables
+const dogWords = [
+    "puppy", "rescue", "treat", "leash", "fetch", "bark", "play", "friend",
+    "loyal", "happy", "cuddle", "paw", "bone", "walk", "love", "care",
+    "protect", "shelter", "home", "family", "safe", "warm", "gentle", "kind"
+];
+
+let dogGameActive = false;
+let dogsRescued = 0;
+let rescueTimer = null;
+let currentDog = null;
+let rescueTimeLeft = 60;
 
 // Tab switching
 document.querySelectorAll('.tab-btn').forEach(button => {
@@ -66,14 +79,17 @@ timeButtons.forEach(button => {
 // Mode selection handling
 function selectMode(mode) {
     document.getElementById('mode-selection').classList.add('hidden');
-    document.getElementById('typing-container').classList.remove('hidden');
     
-    if (mode === 'game') {
-        // Enable game mode specific features
-        enableGameMode();
+    if (mode === 'dog-rescue') {
+        document.getElementById('dog-rescue-container').classList.remove('hidden');
+        setupDogGame();
     } else {
-        // Enable practice mode specific features
-        enablePracticeMode();
+        document.getElementById('typing-container').classList.remove('hidden');
+        if (mode === 'game') {
+            enableGameMode();
+        } else {
+            enablePracticeMode();
+        }
     }
 }
 
@@ -341,18 +357,133 @@ textInput.addEventListener('input', () => {
     }
 });
 
+// Enhanced word completion
 function showCompletionEmoji(span) {
     const emoji = document.createElement('div');
-    emoji.className = 'word-complete';
-    emoji.textContent = completionEmojis[Math.floor(Math.random() * completionEmojis.length)];
-    emoji.style.left = `${span.offsetLeft}px`;
-    emoji.style.top = `${span.offsetTop}px`;
-    textDisplay.appendChild(emoji);
+    emoji.className = 'word-complete-emoji';
+    
+    // Position emoji after the word
+    const rect = span.getBoundingClientRect();
+    emoji.style.left = `${rect.right + 10}px`;
+    emoji.style.top = `${rect.top}px`;
+    
+    // Random emoji selection with weighted probabilities
+    const emojiGroups = {
+        stars: ['⭐', '✨', '🌟', '💫'],
+        celebration: ['🎯', '🎨', '🎪', '🎭'],
+        positive: ['👏', '🎉', '🌈', '💪']
+    };
+    
+    const group = Math.random() < 0.5 ? 'stars' : 
+                 Math.random() < 0.7 ? 'celebration' : 'positive';
+    emoji.textContent = emojiGroups[group][Math.floor(Math.random() * emojiGroups[group].length)];
+    
+    document.body.appendChild(emoji);
     
     // Remove emoji after animation
-    setTimeout(() => {
-        emoji.remove();
-    }, 1000);
+    setTimeout(() => emoji.remove(), 1000);
+}
+
+// Victory celebration
+function showVictoryCelebration(stats) {
+    const celebration = document.createElement('div');
+    celebration.className = 'victory-celebration';
+    
+    // Calculate performance level and message
+    let performanceMessage = '';
+    let performanceEmoji = '';
+    if (stats.wpm >= 80) {
+        performanceMessage = "Outstanding! You're a typing master!";
+        performanceEmoji = '🏆';
+    } else if (stats.wpm >= 60) {
+        performanceMessage = "Great job! You're getting really fast!";
+        performanceEmoji = '🌟';
+    } else if (stats.wpm >= 40) {
+        performanceMessage = "Good progress! Keep practicing to improve!";
+        performanceEmoji = '👍';
+    } else {
+        performanceMessage = "Nice start! Regular practice will help you improve.";
+        performanceEmoji = '💪';
+    }
+    
+    celebration.innerHTML = `
+        <div class="victory-content">
+            <h1 class="victory-title">Test Complete! ${performanceEmoji}</h1>
+            <p class="performance-message">${performanceMessage}</p>
+            <div class="victory-stats">
+                <div class="victory-stat">
+                    <span>WPM</span>
+                    <span>${stats.wpm}</span>
+                </div>
+                <div class="victory-stat">
+                    <span>Accuracy</span>
+                    <span>${stats.accuracy}%</span>
+                </div>
+                <div class="victory-stat">
+                    <span>Time</span>
+                    <span>${formatTime(stats.time)}</span>
+                </div>
+            </div>
+            <div class="victory-buttons">
+                <button class="mode-btn practice" onclick="tryAgain()">Try Again</button>
+                <button class="mode-btn game" onclick="backToModes()">Change Mode</button>
+            </div>
+            <p class="typing-tip">Tip: ${getRandomTypingTip()}</p>
+        </div>
+    `;
+    
+    document.body.appendChild(celebration);
+    
+    // Add confetti
+    for (let i = 0; i < 50; i++) {
+        createConfetti();
+    }
+    
+    // Show celebration with animation
+    setTimeout(() => celebration.classList.add('show'), 10);
+}
+
+// Function to get a random typing tip
+function getRandomTypingTip() {
+    const tips = [
+        "Keep your fingers on the home row keys (ASDF JKL;) for better accuracy.",
+        "Focus on accuracy first, speed will come naturally with practice.",
+        "Take short breaks every 20-30 minutes to prevent fatigue.",
+        "Practice regularly, even if just for 10 minutes a day.",
+        "Look at the screen, not your hands, while typing.",
+        "Maintain good posture to prevent strain and improve performance.",
+        "Use all your fingers, including your pinkies, for faster typing.",
+        "Try to maintain a steady rhythm while typing."
+    ];
+    return tips[Math.floor(Math.random() * tips.length)];
+}
+
+// Function to try the test again
+function tryAgain() {
+    closeVictoryCelebration();
+    resetTest();
+    startTest();
+}
+
+function createConfetti() {
+    const confetti = document.createElement('div');
+    confetti.className = 'confetti';
+    
+    // Random position and color
+    confetti.style.left = `${Math.random() * 100}%`;
+    confetti.style.animationDelay = `${Math.random() * 3}s`;
+    confetti.style.backgroundColor = `hsl(${Math.random() * 360}, 80%, 60%)`;
+    
+    document.querySelector('.victory-celebration').appendChild(confetti);
+    
+    // Remove after animation
+    setTimeout(() => confetti.remove(), 3000);
+}
+
+function closeVictoryCelebration() {
+    const celebration = document.querySelector('.victory-celebration');
+    celebration.classList.remove('show');
+    setTimeout(() => celebration.remove(), 500);
 }
 
 // Leaderboard Functions
@@ -374,6 +505,195 @@ async function loadLeaderboard() {
         });
     } catch (error) {
         console.error('Error loading leaderboard:', error);
+    }
+}
+
+// Dog Rescue Game Functions
+function setupDogGame() {
+    const gameArea = document.getElementById('game-area');
+    gameArea.innerHTML = '';
+    dogsRescued = 0;
+    rescueTimeLeft = 60;
+    updateDogGameStats();
+    
+    document.getElementById('rescue-start-btn').addEventListener('click', startDogGame);
+    document.getElementById('rescue-input').addEventListener('input', handleDogGameInput);
+}
+
+function startDogGame() {
+    if (dogGameActive) return;
+    
+    dogGameActive = true;
+    document.getElementById('rescue-input').value = '';
+    document.getElementById('rescue-input').disabled = false;
+    document.getElementById('rescue-input').focus();
+    document.getElementById('rescue-start-btn').disabled = true;
+    
+    spawnNewDog();
+    
+    rescueTimer = setInterval(() => {
+        rescueTimeLeft--;
+        updateDogGameStats();
+        
+        if (rescueTimeLeft <= 0) {
+            endDogGame();
+        }
+    }, 1000);
+}
+
+function spawnNewDog() {
+    const gameArea = document.getElementById('game-area');
+    const word = dogWords[Math.floor(Math.random() * dogWords.length)];
+    
+    const dogElement = document.createElement('div');
+    dogElement.className = 'dog-character';
+    dogElement.style.left = Math.random() * 80 + 10 + '%';
+    dogElement.style.bottom = '20px';
+    
+    const wordBubble = document.createElement('div');
+    wordBubble.className = 'word-bubble';
+    wordBubble.textContent = word;
+    
+    dogElement.appendChild(wordBubble);
+    gameArea.appendChild(dogElement);
+    
+    currentDog = {
+        element: dogElement,
+        word: word,
+        progress: 0
+    };
+}
+
+function handleDogGameInput(e) {
+    if (!dogGameActive || !currentDog) return;
+    
+    const input = e.target.value.toLowerCase();
+    const targetWord = currentDog.word;
+    
+    let correctChars = 0;
+    for (let i = 0; i < input.length && i < targetWord.length; i++) {
+        if (input[i] === targetWord[i]) {
+            correctChars++;
+        }
+    }
+    
+    const progress = (correctChars / targetWord.length) * 100;
+    currentDog.progress = progress;
+    
+    // Update progress bar
+    const progressBar = document.querySelector('.rescue-progress .fill');
+    progressBar.style.width = `${progress}%`;
+    
+    // Move dog up based on progress
+    currentDog.element.style.bottom = `${20 + (progress * 0.6)}px`;
+    
+    if (input === targetWord) {
+        rescueDog();
+    }
+}
+
+function rescueDog() {
+    dogsRescued++;
+    updateDogGameStats();
+    
+    // Show celebration emoji
+    const celebration = document.createElement('div');
+    celebration.className = 'rescue-celebration';
+    celebration.textContent = '🐕✨';
+    celebration.style.left = currentDog.element.style.left;
+    celebration.style.top = currentDog.element.style.top;
+    document.querySelector('.dog-game-container').appendChild(celebration);
+    
+    // Animate dog rescue
+    currentDog.element.style.transform = 'translateY(-100px) scale(1.2)';
+    currentDog.element.style.opacity = '0';
+    
+    // Play success sound
+    const successSound = new Audio('data:audio/wav;base64,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qJrx4KOQjahZxWbcZgztj2c49nKmkId44S71j0c8eV9yDK6uPRzx5X18eDvjvQ6yKo9ZSS6l//8elePK/Lf//IInrOF/FvDoADYAGBMGb7FtErm5MXMlmPAJQVgWta7Zx2go+8xJ0UiCb8LHHdftWyLJE0QIAIsI+UbXu67dZMjmgDGCGl1H+vpF4NSDckSIkk7Vd+sxEhBQMRU8j/12UIRhzSaUdQ+rQU5kGeFxm+hb1oh6pWWmv3uvmReDl0UnvtapVaIzo1jZbf/pD6ElLqSX+rUmOQNpJFa/r+sa4e/pBlAABoAAAAA3CUgShLdGIxsY7AUABPRrgCABdDuQ5GC7DqPQCgbbJUAoRSUj+NIEig0YfyWUho1VBBBA//uQZB4ABZx5zfMakeAAAAmwAAAAF5F3P0w9GtAAACfAAAAAwLhMDmAYWMgVEG1U0FIGCBgXBXAtfMH10000EEEEEECUBYln03TTTdNBDZopopYvrTTdNa325mImNg3TTPV9q3pmY0xoO6bv3r00y+IDGid/9aaaZTGMuj9mpu9Mpio1dXrr5HERTZSmqU36A3CumzN/9Robv/Xx4v9ijkSRSNLQhAWumap82WRSBUqXStV/YcS+XVLnSS+WLDroqArFkMEsAS+eWmrUzrO0oEmE40RlMZ5+ODIkAyKAGUwZ3mVKmcamcJnMW26MRPgUw6j+LkhyHGVGYjSUUKNpuJUQoOIAyDvEyG8S5yfK6dhZc0Tx1KI/gviKL6qvvFs1+bWtaz58uUNnryq6kt5RzOCkPWlVqVX2a/EEBUdU1KrXLf40GoiiFXK///qpoiDXrOgqDR38JB0bw7SoL+ZB9o1RCkQjQ2CBYZKd/+VJxZRRZlqSkKiws0WFxUyCwsKiMy7hUVFhIaCrNQsKkTIsLivwKKigsj8XYlwt/WKi2N4d//uQRCSAAjURNIHpMZBGYiaQPSYyAAABLAAAAAAAACWAAAAApUF/Mg+0aohSIRobBAsMlO//Kk4soosy1JSFRYWaLC4qZBYWFRGZdwqKiwkNBVmoWFSJkWFxX4FFRQWR+LsS4W/rFRb/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////VEFHAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAU291bmRib3kuZGUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMjAwNGh0dHA6Ly93d3cuc291bmRib3kuZGUAAAAAAAAAACU=');
+    successSound.play();
+    
+    setTimeout(() => {
+        currentDog.element.remove();
+        document.getElementById('rescue-input').value = '';
+        spawnNewDog();
+        
+        // Remove celebration after animation
+        setTimeout(() => celebration.remove(), 1000);
+    }, 500);
+}
+
+function updateDogGameStats() {
+    document.getElementById('dogs-rescued').textContent = dogsRescued;
+    document.getElementById('rescue-time').textContent = `${rescueTimeLeft}s`;
+}
+
+function endDogGame() {
+    dogGameActive = false;
+    clearInterval(rescueTimer);
+    
+    if (currentDog) {
+        currentDog.element.remove();
+        currentDog = null;
+    }
+    
+    document.getElementById('rescue-input').disabled = true;
+    document.getElementById('rescue-start-btn').disabled = false;
+    
+    // Show victory celebration
+    showVictoryCelebration({
+        wpm: dogsRescued,
+        accuracy: Math.round((dogsRescued / (dogsRescued + missedDogs)) * 100),
+        time: 60
+    });
+    
+    // Update high score
+    const currentHighScore = parseInt(document.getElementById('rescue-high-score').textContent);
+    if (dogsRescued > currentHighScore) {
+        document.getElementById('rescue-high-score').textContent = dogsRescued;
+        updateRescueLeaderboard(dogsRescued);
+    }
+}
+
+async function updateRescueLeaderboard(score) {
+    try {
+        const response = await fetch(`${API_URL}/api/update-score`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                username: currentUser, 
+                score: score,
+                gameMode: 'dog-rescue'
+            })
+        });
+        
+        if (response.ok) {
+            loadRescueLeaderboard();
+        }
+    } catch (error) {
+        console.error('Error updating rescue leaderboard:', error);
+    }
+}
+
+async function loadRescueLeaderboard() {
+    try {
+        const response = await fetch(`${API_URL}/api/leaderboard?mode=dog-rescue`);
+        const data = await response.json();
+        
+        const leaderboardList = document.getElementById('rescue-leaderboard-list');
+        leaderboardList.innerHTML = '';
+        
+        data.forEach((entry, index) => {
+            const item = document.createElement('div');
+            item.className = 'leaderboard-item';
+            item.innerHTML = `
+                <span>${index + 1}</span>
+                <span>${entry.username}</span>
+                <span>${entry.highScore} dogs</span>
+            `;
+            leaderboardList.appendChild(item);
+        });
+    } catch (error) {
+        console.error('Error loading rescue leaderboard:', error);
     }
 }
 
@@ -407,4 +727,31 @@ function resetTest() {
     
     // Re-enable time selection
     timeButtons.forEach(btn => btn.disabled = false);
+}
+
+// About Modal Functions
+function showAbout() {
+    const modal = document.getElementById('about-modal');
+    modal.classList.remove('hidden');
+    setTimeout(() => modal.classList.add('show'), 10);
+    
+    // Close modal when clicking outside
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            closeAbout();
+        }
+    });
+    
+    // Close modal with Escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeAbout();
+        }
+    });
+}
+
+function closeAbout() {
+    const modal = document.getElementById('about-modal');
+    modal.classList.remove('show');
+    setTimeout(() => modal.classList.add('hidden'), 300);
 } 

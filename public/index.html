@@ -6,6 +6,7 @@
     <title>Typing Test Pro</title>
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
     <div class="container">
@@ -37,11 +38,52 @@
             <h2>Choose Your Mode</h2>
             <div class="mode-buttons">
                 <button class="mode-btn practice" onclick="selectMode('practice')">
+                    <i class="fas fa-keyboard"></i>
                     Practice Test
+                    <span>Improve your speed</span>
                 </button>
                 <button class="mode-btn game" onclick="selectMode('game')">
+                    <i class="fas fa-gamepad"></i>
                     Typing Game
+                    <span>Challenge yourself</span>
                 </button>
+                <button class="mode-btn dog-rescue" onclick="selectMode('dog-rescue')">
+                    <i class="fas fa-dog"></i>
+                    Dog Rescue
+                    <span>Save the puppies!</span>
+                </button>
+            </div>
+            <button class="about-btn" onclick="showAbout()">About</button>
+        </div>
+
+        <!-- About Modal -->
+        <div id="about-modal" class="modal hidden">
+            <div class="modal-content">
+                <span class="close-btn" onclick="closeAbout()">&times;</span>
+                <h2>About Typing Test Pro</h2>
+                <div class="about-section">
+                    <h3>Features</h3>
+                    <ul>
+                        <li>Practice Mode: Improve your typing speed with various time options</li>
+                        <li>Game Mode: Engage in fun typing challenges with progressive difficulty</li>
+                        <li>Real-time WPM and accuracy tracking</li>
+                        <li>Global leaderboard to compete with others</li>
+                        <li>Beautiful, responsive design with modern UI effects</li>
+                    </ul>
+                </div>
+                <div class="about-section">
+                    <h3>About the Developers</h3>
+                    <p>This web project has been developed by Garvit and Karan, students currently pursuing their Bachelor of Computer Applications (BCA) in the 6th semester at Soban Singh Jeena University (SSJU), Almora.</p>
+                    <p>With a passion for web technologies and software development, they collaborated on this project as part of their academic journey, applying theoretical knowledge to real-world problem-solving. Their goal is to continue growing as full-stack developers and contribute to impactful digital solutions.</p>
+                </div>
+                <div class="about-section">
+                    <h3>Technologies Used</h3>
+                    <ul>
+                        <li>Frontend: HTML5, CSS3, Vanilla JavaScript</li>
+                        <li>Backend: Node.js with Express</li>
+                        <li>Deployment: Vercel</li>
+                    </ul>
+                </div>
             </div>
         </div>
 
@@ -104,6 +146,54 @@
             <div class="developer-credits">
                 <h3>Developed By</h3>
                 <p>Garvit & Karan</p>
+            </div>
+        </div>
+
+        <!-- Dog Rescue Game Container -->
+        <div id="dog-rescue-container" class="typing-container hidden">
+            <button class="back-btn" onclick="backToModes()">← Back</button>
+            <div class="header">
+                <h2>Dog Rescue Mission</h2>
+                <div class="game-stats">
+                    <div class="stat-box">
+                        <span>Dogs Rescued</span>
+                        <span id="dogs-rescued">0</span>
+                    </div>
+                    <div class="stat-box">
+                        <span>Time Left</span>
+                        <span id="rescue-time">60s</span>
+                    </div>
+                    <div class="stat-box">
+                        <span>High Score</span>
+                        <span id="rescue-high-score">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dog-game-container">
+                <div class="rescue-progress">
+                    <div class="fill"></div>
+                </div>
+                <div id="game-area"></div>
+            </div>
+
+            <div class="typing-area">
+                <div id="rescue-word-display" class="text-display"></div>
+                <textarea id="rescue-input" class="text-input" placeholder="Type to rescue dogs..." disabled></textarea>
+            </div>
+
+            <button id="rescue-start-btn" class="start-btn">Start Rescue Mission</button>
+
+            <div id="rescue-leaderboard" class="leaderboard-container">
+                <h2>Top Rescuers</h2>
+                <div class="leaderboard">
+                    <div class="leaderboard-header">
+                        <span>Rank</span>
+                        <span>Rescuer</span>
+                        <span>Dogs Saved</span>
+                    </div>
+                    <div id="rescue-leaderboard-list"></div>
+                </div>
             </div>
         </div>
     </div>
