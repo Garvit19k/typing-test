@@ -7,8 +7,8 @@ const sampleTexts = [
     "Cloud computing is the on-demand availability of computer system resources."
 ];
 
-// Update API Base URL to use local server
-const API_URL = 'http://localhost:3000';  // Point to local Express server
+// Update API Base URL to use Vercel deployment
+const API_URL = '';  // Empty string for relative paths in Vercel deployment
 
 // Add this at the top of your script.js, after the API_URL declaration
 const MAX_RETRIES = 3;
