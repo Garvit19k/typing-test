@@ -212,20 +212,29 @@ function getGameText() {
     return gameTexts[Math.floor(Math.random() * gameTexts.length)];
 }
 
+// Add gender selection handling
+document.querySelectorAll('.gender-option').forEach(button => {
+    button.addEventListener('click', () => {
+        document.querySelectorAll('.gender-option').forEach(btn => btn.classList.remove('active'));
+        button.classList.add('active');
+    });
+});
+
 // Authentication Functions
 async function register() {
     const username = document.getElementById('register-username').value;
     const password = document.getElementById('register-password').value;
+    const gender = document.querySelector('.gender-option.active').dataset.gender;
 
     try {
-        const registerBtn = document.querySelector('#register-form button');
+        const registerBtn = document.querySelector('#register-form button[type="submit"]');
         registerBtn.textContent = 'Creating Account...';
         registerBtn.disabled = true;
 
         const response = await fetch(`${API_URL}/api/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password })
+            body: JSON.stringify({ username, password, gender })
         });
 
         console.log('Register response:', response.status);
@@ -242,8 +251,8 @@ async function register() {
         console.error('Registration error:', error);
         alert('Error during registration. Please try again.');
     } finally {
-        const registerBtn = document.querySelector('#register-form button');
-        registerBtn.textContent = 'Register';
+        const registerBtn = document.querySelector('#register-form button[type="submit"]');
+        registerBtn.textContent = 'Register 🌟';
         registerBtn.disabled = false;
     }
 }
@@ -605,16 +614,31 @@ textInput.addEventListener('input', () => {
 // Modify the showCompletionEmoji function to use theme-specific emojis
 function showCompletionEmoji(span) {
     const emoji = document.createElement('div');
-    emoji.className = 'completion-emoji';
+    emoji.className = 'word-complete-emoji';
     
     // Get random emoji from current theme
     const themeEmojis = themes[currentTheme].emojis;
     emoji.textContent = themeEmojis[Math.floor(Math.random() * themeEmojis.length)];
     
-    // Position emoji
+    // Get the position relative to the viewport
     const rect = span.getBoundingClientRect();
-    emoji.style.left = `${rect.right + 10}px`;
-    emoji.style.top = `${rect.top}px`;
+    
+    // Calculate position to keep emoji within the typing container
+    const typingContainer = document.querySelector('.typing-container');
+    const containerRect = typingContainer.getBoundingClientRect();
+    
+    let left = Math.min(
+        Math.max(rect.right, containerRect.left + 20),
+        containerRect.right - 20
+    );
+    
+    let top = Math.min(
+        Math.max(rect.top, containerRect.top + 20),
+        containerRect.bottom - 40
+    );
+    
+    emoji.style.left = `${left}px`;
+    emoji.style.top = `${top}px`;
     
     document.body.appendChild(emoji);
     
