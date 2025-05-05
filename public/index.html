@@ -5,10 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Typing Test Pro</title>
     <link rel="stylesheet" href="styles.css">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="container">
+        <!-- Auth Container -->
         <div id="auth-container" class="auth-container">
             <h1>Typing Test Pro</h1>
             <div class="auth-box">
@@ -31,7 +32,22 @@
             </div>
         </div>
 
+        <!-- Mode Selection -->
+        <div id="mode-selection" class="mode-selection hidden">
+            <h2>Choose Your Mode</h2>
+            <div class="mode-buttons">
+                <button class="mode-btn practice" onclick="selectMode('practice')">
+                    Practice Test
+                </button>
+                <button class="mode-btn game" onclick="selectMode('game')">
+                    Typing Game
+                </button>
+            </div>
+        </div>
+
+        <!-- Typing Container -->
         <div id="typing-container" class="typing-container hidden">
+            <button class="back-btn" onclick="backToModes()">← Back</button>
             <div class="header">
                 <h2>Welcome, <span id="username-display"></span></h2>
                 <div class="control-buttons">
@@ -62,7 +78,7 @@
                 </div>
                 <div class="stat-box">
                     <span>Time</span>
-                    <span id="time">60s</span>
+                    <span id="time">2m</span>
                 </div>
             </div>
 

@@ -7,15 +7,27 @@ A professional typing test application with user authentication, leaderboard, an
 - User authentication (login/register)
 - Real-time WPM (Words Per Minute) calculation
 - Accuracy tracking
-- 60-second timed tests
+- Multiple time duration options (30s to 5m)
 - Global leaderboard
 - Modern and responsive UI
-- Multiple sample texts
+- Two modes: Practice Test and Typing Game
+- Character-by-character feedback
+- Word completion celebrations
+- Progress tracking
+
+## Technical Features
+
+- Real-time error highlighting
+- Word completion animations
+- Progress bar
+- Pause/Resume functionality
+- Multiple time duration options
+- Responsive design
+- Modern UI with glassmorphism effects
 
 ## Prerequisites
 
 - Node.js (v14 or higher)
-- MongoDB (local or Atlas)
 - npm or yarn
 
 ## Setup
@@ -31,18 +43,12 @@ cd typing-test
 npm install
 ```
 
-3. Create a `.env` file in the root directory with the following variables:
-```
-MONGODB_URI=your_mongodb_connection_string
-PORT=3000
-```
-
-4. Start the development server:
+3. Start the development server:
 ```bash
-npm run dev
+npm start
 ```
 
-The application will be available at `http://localhost:3000`
+The application will be available at `http://localhost:3001`
 
 ## Deployment
 
@@ -59,34 +65,66 @@ npm i -g vercel
 vercel
 ```
 
-### Railway Deployment
+## Project Structure
 
-1. Create a Railway account
-2. Install Railway CLI:
-```bash
-npm i -g @railway/cli
 ```
-
-3. Login to Railway:
-```bash
-railway login
+typing-test/
+├── public/
+│   ├── index.html      # Main HTML file
+│   ├── styles.css      # Styles and animations
+│   └── script.js       # Frontend JavaScript
+├── server.js           # Express server with in-memory storage
+├── package.json        # Project dependencies
+└── vercel.json         # Vercel configuration
 ```
-
-4. Initialize and deploy:
-```bash
-railway init
-railway up
-```
-
-## Environment Variables
-
-- `MONGODB_URI`: MongoDB connection string
-- `PORT`: Server port (default: 3000)
 
 ## Technologies Used
 
-- Frontend: HTML, CSS, JavaScript
-- Backend: Node.js, Express
-- Database: MongoDB
-- Authentication: JWT
-- Deployment: Vercel/Railway 
+### Frontend
+- HTML5
+- CSS3 with modern features:
+  - Flexbox and Grid
+  - CSS Variables
+  - Animations and Transitions
+  - Glassmorphism effects
+- Vanilla JavaScript with:
+  - ES6+ features
+  - DOM manipulation
+  - Event handling
+  - Async/Await
+
+### Backend
+- Node.js
+- Express.js
+- In-memory data storage
+- RESTful API endpoints
+
+### Deployment
+- Vercel for hosting
+- Express.js server
+- Static file serving
+
+## Features in Detail
+
+### Practice Test Mode
+- Multiple time duration options
+- Real-time WPM and accuracy tracking
+- Error highlighting
+- Progress tracking
+
+### Typing Game Mode
+- Engaging gameplay
+- Progressive difficulty
+- Word completion celebrations
+- Visual feedback
+
+### User Interface
+- Modern, clean design
+- Responsive layout
+- Interactive animations
+- Professional color scheme
+- Intuitive navigation
+
+## Developers
+- Garvit
+- Karan 
