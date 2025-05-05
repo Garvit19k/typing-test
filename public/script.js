@@ -7,16 +7,12 @@ const sampleTexts = [
     "Cloud computing is the on-demand availability of computer system resources, especially data storage and computing power, without direct active management by the user."
 ];
 
-// Update API Base URL to use Glitch
-const API_URL = 'https://purring-bush-philosophy.glitch.me';
+// Update API Base URL to use Vercel deployment
+const API_URL = '/api';  // This will work both locally and in production
 
 // Add this at the top of your script.js, after the API_URL declaration
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 2000;
-
-// Add this near the top of the file, after API_URL declaration
-let isOfflineMode = false;
-let localHighScores = JSON.parse(localStorage.getItem('typingTestScores') || '[]');
 
 // Helper function for API calls with retry logic
 async function fetchWithRetry(url, options, retries = MAX_RETRIES) {
@@ -155,16 +151,9 @@ async function register() {
     const password = document.getElementById('register-password').value;
 
     try {
-        // Show loading state
         const registerBtn = document.querySelector('#register-form button');
         registerBtn.textContent = 'Creating Account...';
         registerBtn.disabled = true;
-
-        // Check server status first
-        const serverReady = await waitForServer();
-        if (!serverReady) {
-            throw new Error('Server is still starting up. Please try again in a moment.');
-        }
 
         const response = await fetchWithRetry(`${API_URL}/api/register`, {
             method: 'POST',
@@ -182,88 +171,44 @@ async function register() {
     } catch (error) {
         alert(error.message || 'Error during registration. Please try again.');
     } finally {
-        // Reset button state
         const registerBtn = document.querySelector('#register-form button');
         registerBtn.textContent = 'Register';
         registerBtn.disabled = false;
     }
 }
 
-// Function to check if backend is available
-async function checkBackendAvailability() {
-    try {
-        const response = await fetch(`${API_URL}/health`);
-        if (response.ok) {
-            isOfflineMode = false;
-            document.getElementById('mode-indicator')?.remove();
-            return true;
-        }
-        throw new Error('Backend not available');
-    } catch (error) {
-        console.log('Backend not available, switching to practice mode');
-        isOfflineMode = true;
-        showPracticeModeIndicator();
-        return false;
-    }
-}
-
-// Function to show practice mode indicator
-function showPracticeModeIndicator() {
-    if (!document.getElementById('mode-indicator')) {
-        const indicator = document.createElement('div');
-        indicator.id = 'mode-indicator';
-        indicator.style.cssText = 'position: fixed; top: 10px; right: 10px; background: #ff9800; color: white; padding: 8px 16px; border-radius: 4px; z-index: 1000;';
-        indicator.innerHTML = 'Practice Mode (Scores won\'t be saved online)';
-        document.body.appendChild(indicator);
-    }
-}
-
-// Modify the login function
 async function login() {
     const username = document.getElementById('login-username').value;
     const password = document.getElementById('login-password').value;
     
     try {
-        if (await checkBackendAvailability()) {
-            // Online mode - proceed with normal login
-            const loginBtn = document.querySelector('#login-form button');
-            loginBtn.textContent = 'Logging in...';
-            loginBtn.disabled = true;
+        const loginBtn = document.querySelector('#login-form button');
+        loginBtn.textContent = 'Logging in...';
+        loginBtn.disabled = true;
 
-            const response = await fetchWithRetry(`${API_URL}/api/login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password })
-            });
+        const response = await fetchWithRetry(`${API_URL}/api/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+        });
 
-            const data = await response.json();
-            if (response.ok) {
-                currentUser = {
-                    username: data.username,
-                    token: data.token,
-                    highScore: data.highScore,
-                    dogRescues: data.dogRescues
-                };
-                
-                authContainer.classList.add('hidden');
-                document.getElementById('mode-selection').classList.remove('hidden');
-                usernameDisplay.textContent = `Welcome, ${currentUser.username}!`;
-                loadLeaderboard();
-            } else {
-                alert(data.error || 'Login failed. Please try again.');
-            }
-        } else {
-            // Offline mode - use simple username
-            currentUser = { username: username };
+        const data = await response.json();
+        if (response.ok) {
+            currentUser = {
+                username: data.username,
+                token: data.token,
+                highScore: data.highScore
+            };
+            
             authContainer.classList.add('hidden');
             document.getElementById('mode-selection').classList.remove('hidden');
-            usernameDisplay.textContent = `Welcome, ${username} (Practice Mode)!`;
-            loadLocalLeaderboard();
+            usernameDisplay.textContent = `Welcome, ${currentUser.username}!`;
+            loadLeaderboard();
+        } else {
+            alert(data.error || 'Login failed. Please try again.');
         }
     } catch (error) {
-        if (!isOfflineMode) {
-            alert(error.message || 'Error during login. Please try again.');
-        }
+        alert(error.message || 'Error during login. Please try again.');
     } finally {
         const loginBtn = document.querySelector('#login-form button');
         loginBtn.textContent = 'Login';
@@ -889,6 +834,7 @@ function resetTest() {
 function showAbout() {
     const modal = document.getElementById('about-modal');
     modal.classList.remove('hidden');
+    modal.style.display = 'flex';
     setTimeout(() => modal.classList.add('show'), 10);
     
     // Close modal when clicking outside
@@ -909,7 +855,10 @@ function showAbout() {
 function closeAbout() {
     const modal = document.getElementById('about-modal');
     modal.classList.remove('show');
-    setTimeout(() => modal.classList.add('hidden'), 300);
+    setTimeout(() => {
+        modal.classList.add('hidden');
+        modal.style.display = 'none';
+    }, 300);
 }
 
 // Add these functions after API_URL declaration
