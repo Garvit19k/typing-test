@@ -23,11 +23,12 @@ const accuracyDisplay = document.getElementById('accuracy');
 const timeDisplay = document.getElementById('time');
 const usernameDisplay = document.getElementById('username-display');
 const leaderboardList = document.getElementById('leaderboard-list');
+const timeButtons = document.querySelectorAll('.time-btn');
 
 // Variables
 let currentUser = null;
 let timer = null;
-let timeLeft = 60;
+let timeLeft = 120; // Default to 2 minutes
 let isTestActive = false;
 let isPaused = false;
 let startTime = null;
@@ -36,6 +37,7 @@ let totalPausedTime = 0;
 let currentText = '';
 let correctCharacters = 0;
 let totalCharacters = 0;
+let selectedTime = 120; // Default to 2 minutes
 
 // Tab switching
 document.querySelectorAll('.tab-btn').forEach(button => {
@@ -44,6 +46,17 @@ document.querySelectorAll('.tab-btn').forEach(button => {
         document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
         button.classList.add('active');
         document.getElementById(button.dataset.tab).classList.add('active');
+    });
+});
+
+// Time option selection
+timeButtons.forEach(button => {
+    button.addEventListener('click', () => {
+        timeButtons.forEach(btn => btn.classList.remove('active'));
+        button.classList.add('active');
+        selectedTime = parseInt(button.dataset.time);
+        timeLeft = selectedTime;
+        timeDisplay.textContent = formatTime(timeLeft);
     });
 });
 
@@ -105,13 +118,25 @@ function logout() {
 }
 
 // Typing Test Functions
+function formatTime(seconds) {
+    if (seconds < 60) {
+        return `${seconds}s`;
+    } else {
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = seconds % 60;
+        return remainingSeconds > 0 ? 
+            `${minutes}m ${remainingSeconds}s` : 
+            `${minutes}m`;
+    }
+}
+
 function startTest() {
     if (isTestActive) return;
     
     isTestActive = true;
     isPaused = false;
     startTime = Date.now();
-    timeLeft = 60;
+    timeLeft = selectedTime;
     correctCharacters = 0;
     totalCharacters = 0;
     totalPausedTime = 0;
@@ -126,6 +151,9 @@ function startTest() {
     startBtn.textContent = 'Test in Progress...';
     startBtn.disabled = true;
     pauseBtn.disabled = false;
+    
+    // Disable time selection during test
+    timeButtons.forEach(btn => btn.disabled = true);
     
     // Start timer
     timer = setInterval(updateTimer, 1000);
@@ -154,7 +182,7 @@ function togglePause() {
 
 function updateTimer() {
     timeLeft--;
-    timeDisplay.textContent = `${timeLeft}s`;
+    timeDisplay.textContent = formatTime(timeLeft);
     
     if (timeLeft <= 0) {
         endTest();
@@ -170,6 +198,9 @@ function endTest() {
     pauseBtn.disabled = true;
     pauseBtn.textContent = 'Pause';
     pauseBtn.classList.remove('paused');
+    
+    // Re-enable time selection
+    timeButtons.forEach(btn => btn.disabled = false);
     
     // Calculate final WPM and accuracy
     const timeElapsed = ((Date.now() - startTime - totalPausedTime) / 1000) / 60; // in minutes
@@ -251,8 +282,8 @@ function resetTest() {
     isTestActive = false;
     isPaused = false;
     clearInterval(timer);
-    timeLeft = 60;
-    timeDisplay.textContent = '60s';
+    timeLeft = selectedTime;
+    timeDisplay.textContent = formatTime(timeLeft);
     wpmDisplay.textContent = '0';
     accuracyDisplay.textContent = '0%';
     textInput.value = '';
@@ -263,4 +294,7 @@ function resetTest() {
     pauseBtn.disabled = true;
     pauseBtn.textContent = 'Pause';
     pauseBtn.classList.remove('paused');
+    
+    // Re-enable time selection
+    timeButtons.forEach(btn => btn.disabled = false);
 } 
