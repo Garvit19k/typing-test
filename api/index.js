@@ -7,12 +7,12 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// In-memory storage (replace with a proper database in production)
+// In-memory storage
 const users = [];
 const scores = [];
 
 // JWT Secret
-const JWT_SECRET = process.env.JWT_SECRET || 'typing-test-secret-key-2024';
+const JWT_SECRET = 'typing-test-secret-key-2024';
 
 // Helper function to verify token
 const verifyToken = (token) => {
@@ -25,7 +25,7 @@ const verifyToken = (token) => {
 
 // Routes
 app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok' });
+    res.json({ status: 'OK' });
 });
 
 app.post('/api/register', (req, res) => {
@@ -37,7 +37,7 @@ app.post('/api/register', (req, res) => {
     
     users.push({ username, password });
     const token = jwt.sign({ username }, JWT_SECRET);
-    res.json({ token });
+    res.json({ token, username });
 });
 
 app.post('/api/login', (req, res) => {
@@ -49,7 +49,7 @@ app.post('/api/login', (req, res) => {
     }
     
     const token = jwt.sign({ username }, JWT_SECRET);
-    res.json({ token });
+    res.json({ token, username });
 });
 
 app.post('/api/scores', (req, res) => {
@@ -61,16 +61,21 @@ app.post('/api/scores', (req, res) => {
     }
     
     const { wpm, accuracy } = req.body;
-    scores.push({ username: decoded.username, wpm, accuracy, timestamp: new Date() });
+    scores.push({
+        username: decoded.username,
+        wpm,
+        accuracy,
+        timestamp: new Date()
+    });
+    
     res.json({ message: 'Score saved successfully' });
 });
 
 app.get('/api/leaderboard', (req, res) => {
-    const leaderboard = scores
+    const topScores = scores
         .sort((a, b) => b.wpm - a.wpm)
-        .slice(0, 10)
-        .map(({ username, wpm }) => ({ username, wpm }));
-    res.json(leaderboard);
+        .slice(0, 10);
+    res.json(topScores);
 });
 
 // Export the Express API
