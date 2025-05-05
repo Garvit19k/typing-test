@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
-require('dotenv').config();
+const config = require('./config');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -13,9 +13,13 @@ app.use(express.json());
 app.use(express.static('public'));
 
 // MongoDB Connection
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/typing-test', {
+mongoose.connect(config.mongodb.uri, {
     useNewUrlParser: true,
     useUnifiedTopology: true
+}).then(() => {
+    console.log('Connected to MongoDB Atlas');
+}).catch(err => {
+    console.error('MongoDB connection error:', err);
 });
 
 // User Schema
@@ -36,13 +40,10 @@ const scoreSchema = new mongoose.Schema({
 
 const Score = mongoose.model('Score', scoreSchema);
 
-// JWT Secret
-const JWT_SECRET = process.env.JWT_SECRET || 'typing-test-secret-key-2024';
-
 // Helper function to verify token
 const verifyToken = (token) => {
     try {
-        return jwt.verify(token, JWT_SECRET);
+        return jwt.verify(token, config.jwt.secret);
     } catch (error) {
         return null;
     }
@@ -68,9 +69,10 @@ app.post('/api/register', async (req, res) => {
         await user.save();
         
         // Generate token
-        const token = jwt.sign({ username }, JWT_SECRET);
+        const token = jwt.sign({ username }, config.jwt.secret);
         res.json({ token });
     } catch (error) {
+        console.error('Registration error:', error);
         res.status(500).json({ error: 'Server error' });
     }
 });
@@ -86,9 +88,10 @@ app.post('/api/login', async (req, res) => {
         }
         
         // Generate token
-        const token = jwt.sign({ username }, JWT_SECRET);
+        const token = jwt.sign({ username }, config.jwt.secret);
         res.json({ token });
     } catch (error) {
+        console.error('Login error:', error);
         res.status(500).json({ error: 'Server error' });
     }
 });
@@ -112,6 +115,7 @@ app.post('/api/scores', async (req, res) => {
         await score.save();
         res.json({ message: 'Score saved successfully' });
     } catch (error) {
+        console.error('Score saving error:', error);
         res.status(500).json({ error: 'Server error' });
     }
 });
@@ -123,6 +127,7 @@ app.get('/api/leaderboard', async (req, res) => {
             .limit(10);
         res.json(scores);
     } catch (error) {
+        console.error('Leaderboard error:', error);
         res.status(500).json({ error: 'Server error' });
     }
 });
