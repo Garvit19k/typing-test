@@ -57,6 +57,12 @@ function setTheme(theme) {
     // Update decorations
     updateDecorations();
     
+    // Update gender button gradients
+    const genderButtons = document.querySelectorAll('.gender-option');
+    genderButtons.forEach(button => {
+        button.style.transition = 'background 0.3s ease';
+    });
+    
     // Save theme preference
     localStorage.setItem('preferred-theme', theme);
 }
@@ -267,7 +273,7 @@ async function login() {
     }
     
     try {
-        const loginBtn = document.querySelector('#login-form button');
+        const loginBtn = document.querySelector('#login-form button[type="submit"]');
         loginBtn.textContent = 'Logging in...';
         loginBtn.disabled = true;
 
@@ -277,9 +283,7 @@ async function login() {
             body: JSON.stringify({ username, password })
         });
 
-        console.log('Login response:', response.status);
         const data = await response.json();
-        console.log('Login data:', data);
 
         if (response.ok) {
             currentUser = {
@@ -296,14 +300,14 @@ async function login() {
             usernameDisplay.textContent = `Welcome, ${currentUser.username}!`;
             loadLeaderboard();
         } else {
-            alert(data.error || 'Login failed. Please try again.');
+            throw new Error(data.error || 'Login failed. Please try again.');
         }
     } catch (error) {
         console.error('Login error:', error);
-        alert('Error during login. Please try again.');
+        alert(error.message || 'Error during login. Please try again.');
     } finally {
-        const loginBtn = document.querySelector('#login-form button');
-        loginBtn.textContent = 'Login';
+        const loginBtn = document.querySelector('#login-form button[type="submit"]');
+        loginBtn.textContent = 'Login ✨';
         loginBtn.disabled = false;
     }
 }
