@@ -4,7 +4,11 @@ const jwt = require('jsonwebtoken');
 const app = express();
 
 // Middleware
-app.use(cors());
+app.use(cors({
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json());
 
 // In-memory storage
@@ -25,31 +29,52 @@ const verifyToken = (token) => {
 
 // Routes
 app.get('/api/health', (req, res) => {
-    res.json({ status: 'OK' });
+    res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
 app.post('/api/register', (req, res) => {
-    const { username, password } = req.body;
-    
-    if (users.find(u => u.username === username)) {
-        return res.status(400).json({ error: 'Username already exists' });
+    try {
+        const { username, password } = req.body;
+        
+        if (!username || !password) {
+            return res.status(400).json({ error: 'Username and password are required' });
+        }
+        
+        if (users.find(u => u.username === username)) {
+            return res.status(400).json({ error: 'Username already exists' });
+        }
+        
+        users.push({ username, password });
+        const token = jwt.sign({ username }, JWT_SECRET);
+        console.log('Registered user:', username);
+        res.json({ token, username });
+    } catch (error) {
+        console.error('Registration error:', error);
+        res.status(500).json({ error: 'Internal server error during registration' });
     }
-    
-    users.push({ username, password });
-    const token = jwt.sign({ username }, JWT_SECRET);
-    res.json({ token, username });
 });
 
 app.post('/api/login', (req, res) => {
-    const { username, password } = req.body;
-    const user = users.find(u => u.username === username && u.password === password);
-    
-    if (!user) {
-        return res.status(401).json({ error: 'Invalid credentials' });
+    try {
+        const { username, password } = req.body;
+        
+        if (!username || !password) {
+            return res.status(400).json({ error: 'Username and password are required' });
+        }
+        
+        const user = users.find(u => u.username === username && u.password === password);
+        
+        if (!user) {
+            return res.status(401).json({ error: 'Invalid credentials' });
+        }
+        
+        const token = jwt.sign({ username }, JWT_SECRET);
+        console.log('Logged in user:', username);
+        res.json({ token, username });
+    } catch (error) {
+        console.error('Login error:', error);
+        res.status(500).json({ error: 'Internal server error during login' });
     }
-    
-    const token = jwt.sign({ username }, JWT_SECRET);
-    res.json({ token, username });
 });
 
 app.post('/api/scores', (req, res) => {

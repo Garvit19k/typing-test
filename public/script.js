@@ -8,7 +8,7 @@ const sampleTexts = [
 ];
 
 // Update API Base URL to use Vercel deployment
-const API_URL = '';  // Empty string for relative paths in Vercel deployment
+const API_URL = window.location.origin;
 
 // Add this at the top of your script.js, after the API_URL declaration
 const MAX_RETRIES = 3;
@@ -211,13 +211,16 @@ async function register() {
         registerBtn.textContent = 'Creating Account...';
         registerBtn.disabled = true;
 
-        const response = await fetch('/api/register', {
+        const response = await fetch(`${API_URL}/api/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, password })
         });
 
+        console.log('Register response:', response.status);
         const data = await response.json();
+        console.log('Register data:', data);
+
         if (response.ok) {
             alert('Registration successful! Please login.');
             document.querySelector('[data-tab="login"]').click();
@@ -225,6 +228,7 @@ async function register() {
             alert(data.error || 'Registration failed. Please try again.');
         }
     } catch (error) {
+        console.error('Registration error:', error);
         alert('Error during registration. Please try again.');
     } finally {
         const registerBtn = document.querySelector('#register-form button');
@@ -247,19 +251,25 @@ async function login() {
         loginBtn.textContent = 'Logging in...';
         loginBtn.disabled = true;
 
-        const response = await fetch('/api/login', {
+        const response = await fetch(`${API_URL}/api/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, password })
         });
 
+        console.log('Login response:', response.status);
         const data = await response.json();
+        console.log('Login data:', data);
+
         if (response.ok) {
             currentUser = {
                 username: data.username,
-                token: data.token,
-                highScore: data.highScore
+                token: data.token
             };
+            
+            // Store token in localStorage for persistence
+            localStorage.setItem('token', data.token);
+            localStorage.setItem('username', data.username);
             
             authContainer.classList.add('hidden');
             document.getElementById('mode-selection').classList.remove('hidden');
@@ -269,6 +279,7 @@ async function login() {
             alert(data.error || 'Login failed. Please try again.');
         }
     } catch (error) {
+        console.error('Login error:', error);
         alert('Error during login. Please try again.');
     } finally {
         const loginBtn = document.querySelector('#login-form button');
