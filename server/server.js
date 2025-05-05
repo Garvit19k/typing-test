@@ -1,6 +1,6 @@
 require('dotenv').config();
 const express = require('express');
-const { Sequelize, DataTypes } = require('sequelize');
+const mongoose = require('mongoose');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -11,52 +11,20 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Database connection
-const sequelize = new Sequelize(process.env.DATABASE_URL, {
-    dialect: 'postgres',
-    dialectOptions: {
-        ssl: {
-            require: true,
-            rejectUnauthorized: false
-        }
-    }
-});
-
-// User Model
-const User = sequelize.define('User', {
-    username: {
-        type: DataTypes.STRING,
-        allowNull: false,
-        unique: true
-    },
-    password: {
-        type: DataTypes.STRING,
-        allowNull: false
-    },
-    highScore: {
-        type: DataTypes.INTEGER,
-        defaultValue: 0
-    },
-    dogRescues: {
-        type: DataTypes.INTEGER,
-        defaultValue: 0
-    }
-});
-
-// Health check route
-app.get('/health', async (req, res) => {
-    try {
-        await sequelize.authenticate();
+// Health check route for keep-alive
+app.get('/health', (req, res) => {
+    // Check MongoDB connection
+    if (mongoose.connection.readyState === 1) {
         res.status(200).json({ 
             status: 'OK',
             database: 'Connected',
             message: 'Server is fully operational'
         });
-    } catch (error) {
+    } else {
         res.status(503).json({ 
-            status: 'Error',
-            database: 'Disconnected',
-            message: 'Database connection issue'
+            status: 'Starting',
+            database: 'Connecting',
+            message: 'Server is starting up, please try again in a few seconds'
         });
     }
 });
@@ -65,10 +33,56 @@ app.get('/health', async (req, res) => {
 app.get('/', (req, res) => {
     res.status(200).json({
         message: 'Typing Test API is running',
-        databaseStatus: sequelize.connectionManager.connection.isAuthenticated ? 'Connected' : 'Disconnected',
+        databaseStatus: mongoose.connection.readyState === 1 ? 'Connected' : 'Connecting',
         serverTime: new Date().toISOString()
     });
 });
+
+// Improved MongoDB Connection with retry logic and exponential backoff
+const connectDB = async (retryCount = 0) => {
+    const maxRetries = 5;
+    const backoffMs = Math.min(1000 * Math.pow(2, retryCount), 10000); // Max 10 second delay
+
+    try {
+        const conn = await mongoose.connect(process.env.MONGODB_URI, {
+            useNewUrlParser: true,
+            useUnifiedTopology: true,
+            serverSelectionTimeoutMS: 5000,
+            retryWrites: true
+        });
+        console.log(`MongoDB Connected: ${conn.connection.host}`);
+        return true;
+    } catch (error) {
+        console.error(`MongoDB connection attempt ${retryCount + 1} failed:`, error.message);
+        
+        if (retryCount < maxRetries) {
+            console.log(`Retrying in ${backoffMs/1000} seconds...`);
+            await new Promise(resolve => setTimeout(resolve, backoffMs));
+            return connectDB(retryCount + 1);
+        } else {
+            console.error('Max retry attempts reached. Please check your database configuration.');
+            return false;
+        }
+    }
+};
+
+connectDB();
+
+// Handle MongoDB disconnection events
+mongoose.connection.on('disconnected', () => {
+    console.log('MongoDB disconnected. Attempting to reconnect...');
+    connectDB();
+});
+
+// User Schema
+const userSchema = new mongoose.Schema({
+    username: { type: String, required: true, unique: true },
+    password: { type: String, required: true },
+    highScore: { type: Number, default: 0 },
+    dogRescues: { type: Number, default: 0 }
+});
+
+const User = mongoose.model('User', userSchema);
 
 // Routes
 app.post('/api/register', async (req, res) => {
@@ -76,7 +90,7 @@ app.post('/api/register', async (req, res) => {
         const { username, password } = req.body;
         
         // Check if user exists
-        const existingUser = await User.findOne({ where: { username } });
+        const existingUser = await User.findOne({ username });
         if (existingUser) {
             return res.status(400).json({ error: 'Username already exists' });
         }
@@ -85,11 +99,12 @@ app.post('/api/register', async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, 10);
 
         // Create new user
-        await User.create({
+        const user = new User({
             username,
             password: hashedPassword
         });
 
+        await user.save();
         res.status(201).json({ message: 'User registered successfully' });
     } catch (error) {
         console.error('Registration error:', error);
@@ -102,7 +117,7 @@ app.post('/api/login', async (req, res) => {
         const { username, password } = req.body;
         
         // Find user
-        const user = await User.findOne({ where: { username } });
+        const user = await User.findOne({ username });
         if (!user) {
             return res.status(400).json({ error: 'User not found' });
         }
@@ -115,7 +130,7 @@ app.post('/api/login', async (req, res) => {
 
         // Create token
         const token = jwt.sign(
-            { userId: user.id },
+            { userId: user._id },
             process.env.JWT_SECRET,
             { expiresIn: '24h' }
         );
@@ -136,7 +151,7 @@ app.post('/api/update-score', async (req, res) => {
     try {
         const { username, score, gameMode } = req.body;
         
-        const user = await User.findOne({ where: { username } });
+        const user = await User.findOne({ username });
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
         }
@@ -164,11 +179,10 @@ app.get('/api/leaderboard', async (req, res) => {
         const { mode } = req.query;
         const sortField = mode === 'dog-rescue' ? 'dogRescues' : 'highScore';
         
-        const leaderboard = await User.findAll({
-            attributes: ['username', 'highScore', 'dogRescues'],
-            order: [[sortField, 'DESC']],
-            limit: 10
-        });
+        const leaderboard = await User.find()
+            .sort({ [sortField]: -1 })
+            .limit(10)
+            .select('username highScore dogRescues -_id');
             
         res.json(leaderboard);
     } catch (error) {
@@ -177,32 +191,19 @@ app.get('/api/leaderboard', async (req, res) => {
     }
 });
 
-// Initialize database and start server
 const PORT = process.env.PORT || 3000;
-
-async function startServer() {
-    try {
-        // Sync database
-        await sequelize.sync();
-        console.log('Database synced successfully');
-
-        // Start server
-        app.listen(PORT, () => {
-            console.log(`Server running on port ${PORT}`);
-        });
-    } catch (error) {
-        console.error('Unable to start server:', error);
-        process.exit(1);
-    }
-}
-
-startServer();
+const server = app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+});
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
     console.log('SIGTERM received. Shutting down gracefully...');
-    sequelize.connectionManager.connection.end().then(() => {
-        console.log('Database connections cleaned up.');
-        process.exit(0);
+    server.close(() => {
+        console.log('Server closed. Database connections cleaned up.');
+        mongoose.connection.close(false, () => {
+            console.log('MongoDB connection closed.');
+            process.exit(0);
+        });
     });
 }); 

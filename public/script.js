@@ -14,6 +14,10 @@ const API_URL = window.location.origin;
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 2000;
 
+// Add this near the top of the file, after API_URL declaration
+let isOfflineMode = false;
+let localHighScores = JSON.parse(localStorage.getItem('typingTestScores') || '[]');
+
 // Helper function for API calls with retry logic
 async function fetchWithRetry(url, options, retries = MAX_RETRIES) {
     try {
@@ -185,51 +189,82 @@ async function register() {
     }
 }
 
+// Function to check if backend is available
+async function checkBackendAvailability() {
+    try {
+        const response = await fetch(`${API_URL}/health`);
+        if (response.ok) {
+            isOfflineMode = false;
+            document.getElementById('mode-indicator')?.remove();
+            return true;
+        }
+        throw new Error('Backend not available');
+    } catch (error) {
+        console.log('Backend not available, switching to practice mode');
+        isOfflineMode = true;
+        showPracticeModeIndicator();
+        return false;
+    }
+}
+
+// Function to show practice mode indicator
+function showPracticeModeIndicator() {
+    if (!document.getElementById('mode-indicator')) {
+        const indicator = document.createElement('div');
+        indicator.id = 'mode-indicator';
+        indicator.style.cssText = 'position: fixed; top: 10px; right: 10px; background: #ff9800; color: white; padding: 8px 16px; border-radius: 4px; z-index: 1000;';
+        indicator.innerHTML = 'Practice Mode (Scores won\'t be saved online)';
+        document.body.appendChild(indicator);
+    }
+}
+
+// Modify the login function
 async function login() {
     const username = document.getElementById('login-username').value;
     const password = document.getElementById('login-password').value;
     
     try {
-        // Show loading state
-        const loginBtn = document.querySelector('#login-form button');
-        loginBtn.textContent = 'Logging in...';
-        loginBtn.disabled = true;
+        if (await checkBackendAvailability()) {
+            // Online mode - proceed with normal login
+            const loginBtn = document.querySelector('#login-form button');
+            loginBtn.textContent = 'Logging in...';
+            loginBtn.disabled = true;
 
-        // Check server status first
-        const serverReady = await waitForServer();
-        if (!serverReady) {
-            throw new Error('Server is still starting up. Please try again in a moment.');
-        }
+            const response = await fetchWithRetry(`${API_URL}/api/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
 
-        const response = await fetchWithRetry(`${API_URL}/api/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password })
-        });
-
-        const data = await response.json();
-        if (response.ok) {
-            currentUser = {
-                username: data.username,
-                token: data.token,
-                highScore: data.highScore,
-                dogRescues: data.dogRescues
-            };
-            
-            // Update UI
+            const data = await response.json();
+            if (response.ok) {
+                currentUser = {
+                    username: data.username,
+                    token: data.token,
+                    highScore: data.highScore,
+                    dogRescues: data.dogRescues
+                };
+                
+                authContainer.classList.add('hidden');
+                document.getElementById('mode-selection').classList.remove('hidden');
+                usernameDisplay.textContent = `Welcome, ${currentUser.username}!`;
+                loadLeaderboard();
+            } else {
+                alert(data.error || 'Login failed. Please try again.');
+            }
+        } else {
+            // Offline mode - use simple username
+            currentUser = { username: username };
             authContainer.classList.add('hidden');
             document.getElementById('mode-selection').classList.remove('hidden');
-            usernameDisplay.textContent = `Welcome, ${currentUser.username}!`;
-            
-            // Load leaderboard
-            loadLeaderboard();
-        } else {
-            alert(data.error || 'Login failed. Please try again.');
+            usernameDisplay.textContent = `Welcome, ${username} (Practice Mode)!`;
+            loadLocalLeaderboard();
         }
     } catch (error) {
-        alert(error.message || 'Error during login. Please try again.');
+        if (!isOfflineMode) {
+            alert(error.message || 'Error during login. Please try again.');
+        }
     } finally {
-        // Reset button state
         const loginBtn = document.querySelector('#login-form button');
         loginBtn.textContent = 'Login';
         loginBtn.disabled = false;
@@ -354,13 +389,93 @@ function endTest() {
     loadLeaderboard();
 }
 
-function updateScore(wpm) {
-    fetch(`${API_URL}/api/update-score`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: currentUser, score: wpm })
+// Add local leaderboard functions
+function saveLocalScore(score) {
+    const scoreEntry = {
+        username: currentUser.username,
+        score: score,
+        date: new Date().toISOString()
+    };
+    
+    localHighScores.push(scoreEntry);
+    localHighScores.sort((a, b) => b.score - a.score);
+    localHighScores = localHighScores.slice(0, 10); // Keep top 10
+    
+    localStorage.setItem('typingTestScores', JSON.stringify(localHighScores));
+    loadLocalLeaderboard();
+}
+
+function loadLocalLeaderboard() {
+    const leaderboardList = document.getElementById('leaderboard-list');
+    leaderboardList.innerHTML = '';
+    
+    localHighScores.forEach((entry, index) => {
+        const item = document.createElement('div');
+        item.className = 'leaderboard-item';
+        item.innerHTML = `
+            <span>${index + 1}</span>
+            <span>${entry.username}</span>
+            <span>${entry.score} WPM</span>
+        `;
+        leaderboardList.appendChild(item);
     });
 }
+
+// Modify updateScore function
+async function updateScore(wpm) {
+    if (isOfflineMode) {
+        saveLocalScore(wpm);
+        return;
+    }
+
+    try {
+        await fetch(`${API_URL}/api/update-score`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: currentUser.username, score: wpm })
+        });
+        loadLeaderboard();
+    } catch (error) {
+        console.error('Error updating score:', error);
+        // Fallback to local storage if backend fails
+        saveLocalScore(wpm);
+    }
+}
+
+// Modify loadLeaderboard function
+async function loadLeaderboard() {
+    if (isOfflineMode) {
+        loadLocalLeaderboard();
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_URL}/api/leaderboard`);
+        const data = await response.json();
+        
+        const leaderboardList = document.getElementById('leaderboard-list');
+        leaderboardList.innerHTML = '';
+        
+        data.forEach((user, index) => {
+            const item = document.createElement('div');
+            item.className = 'leaderboard-item';
+            item.innerHTML = `
+                <span>${index + 1}</span>
+                <span>${user.username}</span>
+                <span>${user.highScore} WPM</span>
+            `;
+            leaderboardList.appendChild(item);
+        });
+    } catch (error) {
+        console.error('Error loading leaderboard:', error);
+        loadLocalLeaderboard();
+    }
+}
+
+// Check backend availability on page load
+document.addEventListener('DOMContentLoaded', () => {
+    checkBackendAvailability();
+});
 
 // Handle input with error highlighting and word completion
 textInput.addEventListener('input', () => {
@@ -547,28 +662,6 @@ function closeVictoryCelebration() {
     const celebration = document.querySelector('.victory-celebration');
     celebration.classList.remove('show');
     setTimeout(() => celebration.remove(), 500);
-}
-
-// Leaderboard Functions
-async function loadLeaderboard() {
-    try {
-        const response = await fetch(`${API_URL}/api/leaderboard`);
-        const data = await response.json();
-        
-        leaderboardList.innerHTML = '';
-        data.forEach((user, index) => {
-            const item = document.createElement('div');
-            item.className = 'leaderboard-item';
-            item.innerHTML = `
-                <span>${index + 1}</span>
-                <span>${user.username}</span>
-                <span>${user.highScore} WPM</span>
-            `;
-            leaderboardList.appendChild(item);
-        });
-    } catch (error) {
-        console.error('Error loading leaderboard:', error);
-    }
 }
 
 // Dog Rescue Game Functions
@@ -849,4 +942,17 @@ async function waitForServer(maxAttempts = 5) {
     
     loadingMessage.textContent = 'Server seems to be taking longer than usual...';
     return false;
+}
+
+// Add this after the login function
+function practiceMode() {
+    const username = document.getElementById('login-username').value || 'Guest';
+    currentUser = { username: username };
+    isOfflineMode = true;
+    showPracticeModeIndicator();
+    
+    authContainer.classList.add('hidden');
+    document.getElementById('mode-selection').classList.remove('hidden');
+    usernameDisplay.textContent = `Welcome, ${username} (Practice Mode)!`;
+    loadLocalLeaderboard();
 } 
