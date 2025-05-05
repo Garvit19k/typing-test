@@ -7,8 +7,8 @@ const sampleTexts = [
     "Cloud computing is the on-demand availability of computer system resources, especially data storage and computing power, without direct active management by the user."
 ];
 
-// API Base URL
-const API_URL = window.location.origin;
+// Update API Base URL to use Glitch
+const API_URL = 'https://purring-bush-philosophy.glitch.me';
 
 // Add this at the top of your script.js, after the API_URL declaration
 const MAX_RETRIES = 3;
