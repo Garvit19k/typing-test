@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Typing Test Pro</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <div id="auth-container" class="auth-container">
+            <h1>Typing Test Pro</h1>
+            <div class="auth-box">
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="login">Login</button>
+                    <button class="tab-btn" data-tab="register">Register</button>
+                </div>
+                <div class="tab-content">
+                    <div id="login" class="tab-pane active">
+                        <input type="text" id="login-username" placeholder="Username">
+                        <input type="password" id="login-password" placeholder="Password">
+                        <button onclick="login()">Login</button>
+                    </div>
+                    <div id="register" class="tab-pane">
+                        <input type="text" id="register-username" placeholder="Username">
+                        <input type="password" id="register-password" placeholder="Password">
+                        <button onclick="register()">Register</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="typing-container" class="typing-container hidden">
+            <div class="header">
+                <h2>Welcome, <span id="username-display"></span></h2>
+                <button onclick="logout()" class="logout-btn">Logout</button>
+            </div>
+            
+            <div class="stats">
+                <div class="stat-box">
+                    <span>WPM</span>
+                    <span id="wpm">0</span>
+                </div>
+                <div class="stat-box">
+                    <span>Accuracy</span>
+                    <span id="accuracy">0%</span>
+                </div>
+                <div class="stat-box">
+                    <span>Time</span>
+                    <span id="time">60s</span>
+                </div>
+            </div>
+
+            <div class="typing-area">
+                <div id="text-display" class="text-display"></div>
+                <textarea id="text-input" class="text-input" placeholder="Start typing..." disabled></textarea>
+            </div>
+
+            <button id="start-btn" class="start-btn">Start Test</button>
+        </div>
+
+        <div id="leaderboard-container" class="leaderboard-container hidden">
+            <h2>Leaderboard</h2>
+            <div class="leaderboard">
+                <div class="leaderboard-header">
+                    <span>Rank</span>
+                    <span>Username</span>
+                    <span>WPM</span>
+                </div>
+                <div id="leaderboard-list"></div>
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html> 
