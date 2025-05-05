@@ -1,14 +1,14 @@
 // Sample texts for typing test
 const sampleTexts = [
-    "The quick brown fox jumps over the lazy dog. This pangram contains every letter of the English alphabet at least once.",
-    "Programming is the process of creating a set of instructions that tell a computer how to perform a task. Programming can be done using a variety of computer programming languages.",
-    "The Internet is a global network of billions of computers and other electronic devices. With the Internet, it's possible to access almost any information, communicate with anyone else in the world, and do much more.",
-    "Artificial intelligence is intelligence demonstrated by machines, as opposed to natural intelligence displayed by animals including humans. AI research has been defined as the field of study of intelligent agents.",
-    "Cloud computing is the on-demand availability of computer system resources, especially data storage and computing power, without direct active management by the user."
+    "The quick brown fox jumps over the lazy dog.",
+    "Programming is the process of creating a set of instructions that tell a computer how to perform a task.",
+    "The Internet is a global network of billions of computers and other electronic devices.",
+    "Artificial intelligence is intelligence demonstrated by machines, unlike natural intelligence displayed by humans.",
+    "Cloud computing is the on-demand availability of computer system resources."
 ];
 
-// Update API Base URL to use Vercel deployment
-const API_URL = '/api';  // This will work both locally and in production
+// Update API Base URL to use relative path for Vercel
+const API_URL = '/api';
 
 // Add this at the top of your script.js, after the API_URL declaration
 const MAX_RETRIES = 3;
@@ -181,12 +181,21 @@ async function login() {
     const username = document.getElementById('login-username').value;
     const password = document.getElementById('login-password').value;
     
+    if (!username || !password) {
+        alert('Please enter both username and password');
+        return;
+    }
+    
+    loginUser(username, password);
+}
+
+async function loginUser(username, password) {
     try {
         const loginBtn = document.querySelector('#login-form button');
         loginBtn.textContent = 'Logging in...';
         loginBtn.disabled = true;
 
-        const response = await fetchWithRetry(`${API_URL}/api/login`, {
+        const response = await fetch(`${API_URL}/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, password })
@@ -208,7 +217,7 @@ async function login() {
             alert(data.error || 'Login failed. Please try again.');
         }
     } catch (error) {
-        alert(error.message || 'Error during login. Please try again.');
+        alert('Error during login. Please try again.');
     } finally {
         const loginBtn = document.querySelector('#login-form button');
         loginBtn.textContent = 'Login';
@@ -330,6 +339,9 @@ function endTest() {
     // Update score in database
     updateScore(wpm);
     
+    // Show simple completion message
+    alert(`Test Complete!\nWPM: ${wpm}\nAccuracy: ${accuracy}%`);
+    
     // Update leaderboard
     loadLeaderboard();
 }
@@ -444,9 +456,22 @@ textInput.addEventListener('input', () => {
             span.classList.add('correct');
             correctCharacters++;
             
-            // Check for word completion
+            // Check for word completion (when space is typed or at the end)
             if (inputText[i] === ' ' || i === currentText.length - 1) {
-                showCompletionEmoji(span);
+                // Get the word that was just completed
+                let wordEndIndex = i;
+                let wordStartIndex = i;
+                while (wordStartIndex > 0 && currentText[wordStartIndex - 1] !== ' ') {
+                    wordStartIndex--;
+                }
+                
+                // Check if the word was typed correctly
+                const typedWord = inputText.slice(wordStartIndex, wordEndIndex);
+                const correctWord = currentText.slice(wordStartIndex, wordEndIndex);
+                
+                if (typedWord === correctWord) {
+                    showCompletionEmoji(span);
+                }
             }
         } else {
             span.classList.add('error');
@@ -490,16 +515,9 @@ function showCompletionEmoji(span) {
     emoji.style.left = `${rect.right + 10}px`;
     emoji.style.top = `${rect.top}px`;
     
-    // Random emoji selection with weighted probabilities
-    const emojiGroups = {
-        stars: ['⭐', '✨', '🌟', '💫'],
-        celebration: ['🎯', '🎨', '🎪', '🎭'],
-        positive: ['👏', '🎉', '🌈', '💪']
-    };
-    
-    const group = Math.random() < 0.5 ? 'stars' : 
-                 Math.random() < 0.7 ? 'celebration' : 'positive';
-    emoji.textContent = emojiGroups[group][Math.floor(Math.random() * emojiGroups[group].length)];
+    // Random emoji selection
+    const emojis = ['✨', '⭐', '🎯'];
+    emoji.textContent = emojis[Math.floor(Math.random() * emojis.length)];
     
     document.body.appendChild(emoji);
     
@@ -891,17 +909,4 @@ async function waitForServer(maxAttempts = 5) {
     
     loadingMessage.textContent = 'Server seems to be taking longer than usual...';
     return false;
-}
-
-// Add this after the login function
-function practiceMode() {
-    const username = document.getElementById('login-username').value || 'Guest';
-    currentUser = { username: username };
-    isOfflineMode = true;
-    showPracticeModeIndicator();
-    
-    authContainer.classList.add('hidden');
-    document.getElementById('mode-selection').classList.remove('hidden');
-    usernameDisplay.textContent = `Welcome, ${username} (Practice Mode)!`;
-    loadLocalLeaderboard();
 } 
